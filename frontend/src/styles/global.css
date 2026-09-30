@@ -1,0 +1,223 @@
+/* ---------- Design tokens ---------- */
+:root {
+  --blue: #0b3d91;       /* Strathmore-inspired navy */
+  --blue-dark: #082c69;
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --text: #1c2333;
+  --muted: #5f6b80;
+  --border: #d5dbe6;
+  --error: #c62828;
+  --error-bg: #fdecea;
+  --success: #1b5e20;
+  --success-bg: #e8f5e9;
+  --radius: 10px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); line-height: 1.5; }
+h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+.muted { color: var(--muted); margin-top: 0; }
+
+/* ---------- Auth pages ---------- */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+}
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.75rem;
+  box-shadow: 0 4px 18px rgba(11, 61, 145, 0.07);
+}
+.card--wide { max-width: 640px; }
+
+/* Two columns on wider screens, one column on phones */
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 0 1rem; }
+@media (min-width: 600px) {
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid .field:first-child { grid-column: 1 / -1; } /* email spans full width */
+}
+
+/* ---------- Form fields ---------- */
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.field input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+}
+.field input:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: var(--blue); }
+.field--invalid input { border-color: var(--error); }
+.field__error { color: var(--error); font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+/* ---------- Role toggle ---------- */
+.role-toggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  margin: 1rem 0 1.25rem;
+}
+.role-toggle button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0.55rem;
+  border-radius: 6px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.role-toggle button.active { background: var(--blue); color: #fff; }
+
+/* ---------- Buttons & alerts ---------- */
+.btn {
+  border: 0;
+  border-radius: 6px;
+  padding: 0.65rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.65; cursor: not-allowed; }
+.btn--primary { background: var(--blue); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--blue-dark); }
+.btn--ghost { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.6); }
+.btn--block { width: 100%; margin-top: 0.5rem; }
+
+.alert { padding: 0.7rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.95rem; }
+.alert--error { background: var(--error-bg); color: var(--error); }
+.alert--success { background: var(--success-bg); color: var(--success); }
+
+.switch-link { text-align: center; margin: 1rem 0 0; color: var(--muted); }
+.switch-link a { color: var(--blue); font-weight: 600; }
+
+/* ---------- Dashboards ---------- */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--blue);
+  color: #fff;
+  padding: 0.8rem 1.25rem;
+}
+.brand { font-weight: 700; letter-spacing: 0.02em; }
+.dashboard__body { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem; }
+.eyebrow { text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.small { font-size: 0.85rem; }
+
+/* Section nav under the greeting */
+.subnav { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin: 1rem 0 1.5rem; overflow-x: auto; }
+.subnav a {
+  padding: 0.6rem 1rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+.subnav a.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ---------- Panels, forms (dashboard) ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.panel--flush { padding: 0; overflow: hidden; }
+.empty { text-align: center; }
+.span-2 { grid-column: 1 / -1; }
+.field textarea, .field select, .req-row select, .req-row input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--surface);
+}
+.field textarea { resize: vertical; }
+.field--invalid textarea, .field--invalid select { border-color: var(--error); }
+.label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+/* ---------- Requirements editor ---------- */
+.requirements { border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin: 0.5rem 0 0; }
+.requirements legend { font-weight: 700; padding: 0 0.4rem; }
+.req-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--border);
+  align-items: start;
+}
+.req-row .field { margin-bottom: 0.5rem; }
+@media (min-width: 760px) {
+  .req-row { grid-template-columns: minmax(0, 2.2fr) auto 110px auto; }
+  .req-row .btn--icon { margin-top: 1.7rem; }
+}
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.segmented button {
+  border: 0;
+  background: var(--surface);
+  padding: 0.55rem 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.active { background: var(--blue); color: #fff; }
+.requirements > .btn--secondary { margin-top: 0.75rem; }
+
+/* ---------- Extra buttons ---------- */
+.btn--secondary { background: var(--surface); color: var(--blue); border: 1px solid var(--blue); text-decoration: none; display: inline-block; }
+.btn--danger { background: var(--surface); color: var(--error); border: 1px solid var(--error); }
+.btn--sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+.btn--icon { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 0.45rem 0.7rem; }
+.btn--icon:hover:not(:disabled) { color: var(--error); border-color: var(--error); }
+a.btn--primary { text-decoration: none; display: inline-block; }
+
+/* ---------- Table + chips + badges ---------- */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 0.8rem 1rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.table th { background: var(--bg); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.table tr:last-child td { border-bottom: 0; }
+.table .actions { white-space: nowrap; text-align: right; }
+.table .actions > * + * { margin-left: 0.4rem; }
+
+/* On phones each row becomes a card; data-label supplies the column name */
+@media (max-width: 760px) {
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+  .table tr { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+  .table td { border: 0; padding: 0.3rem 0; }
+  .table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .table .actions { text-align: left; padding-top: 0.6rem; }
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+/* Unit names can be long, so chips may wrap onto two lines instead of overflowing the cell. */
+.chip { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 0.1rem 0.55rem; font-size: 0.8rem; line-height: 1.4; }
+.chip--essential { border-color: var(--blue); color: var(--blue); font-weight: 600; }
+.badge { display: inline-block; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.8rem; font-weight: 600; text-transform: capitalize; }
+.badge--open { background: var(--success-bg); color: var(--success); }
+.badge--closed { background: #eceff4; color: var(--muted); }

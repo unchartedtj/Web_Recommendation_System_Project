@@ -1,0 +1,58 @@
+student,group,expected,rank1,rank2,rank3,score1,score2,score3,rank1_eligible,top1_hit,top3_hit,both_in_top2,mark: Object Oriented Programming,mark: Data Structures and Algorithms,mark: Software Engineering,mark: Database Systems,mark: Web Application Development,mark: Mobile Application Development,mark: Probability and Statistics I,mark: Artificial Intelligence,mark: Computer Networks,mark: Operating Systems,mark: Business Systems Analysis,mark: IT Project Management
+S-SWE-1,standard,SWE,SWE,BA,WEB,0.6317,0.5005,0.375,True,True,True,,95,78,40,63,48,47,47,44,63,43,61,63
+S-SWE-2,standard,SWE,SWE,BA,NET,0.6787,0.4571,0.3869,True,True,True,,92,77,58,53,41,40,42,46,47,56,59,40
+S-SWE-3,standard,SWE,SWE,BA,WEB,0.6258,0.4632,0.4342,True,True,True,,92,81,62,60,62,57,53,47,54,58,48,65
+S-SWE-4,standard,SWE,SWE,NET,BA,0.6112,0.4861,0.4254,True,True,True,,75,80,62,53,50,48,44,46,70,64,50,43
+S-SWE-5,standard,SWE,SWE,BA,WEB,0.5939,0.4634,0.437,True,True,True,,77,87,43,51,67,51,59,48,65,41,63,54
+S-SWE-6,standard,SWE,SWE,BA,NET,0.6048,0.5182,0.3889,True,True,True,,92,78,69,52,42,57,49,66,60,59,68,67
+S-WEB-1,standard,WEB,WEB,BA,DATA,0.5782,0.4602,0.4339,True,True,True,,51,58,46,62,77,76,61,47,64,49,42,67
+S-WEB-2,standard,WEB,WEB,BA,DATA,0.6188,0.4144,0.437,True,True,True,,47,67,43,52,83,89,60,66,51,45,51,51
+S-WEB-3,standard,WEB,WEB,BA,DATA,0.6201,0.4485,0.4345,True,True,True,,46,61,48,62,95,77,59,60,45,57,63,47
+S-WEB-4,standard,WEB,WEB,BA,NET,0.6331,0.4802,0.3816,True,True,True,,45,54,52,48,95,92,47,61,50,66,64,64
+S-WEB-5,standard,WEB,WEB,BA,NET,0.6121,0.5165,0.3993,True,True,True,,41,47,66,41,85,87,48,42,46,69,70,58
+S-WEB-6,standard,WEB,WEB,SWE,NET,0.6089,0.4507,0.4133,True,True,True,,68,62,50,46,95,90,52,68,69,60,54,44
+S-DATA-1,standard,DATA,DATA,BA,NET,0.6185,0.4618,0.4467,True,True,True,,48,44,47,92,57,48,93,53,68,58,52,51
+S-DATA-2,standard,DATA,DATA,BA,WEB,0.6116,0.5057,0.4618,True,True,True,,47,44,56,90,42,64,76,67,43,44,60,45
+S-DATA-3,standard,DATA,DATA,SWE,BA,0.6023,0.4819,0.4701,True,True,True,,65,61,53,94,42,52,87,59,54,56,48,57
+S-DATA-4,standard,DATA,DATA,SWE,WEB,0.5653,0.4727,0.4671,True,True,True,,67,70,40,78,61,68,92,64,48,64,60,50
+S-DATA-5,standard,DATA,DATA,BA,NET,0.5819,0.5484,0.398,True,True,True,,43,49,53,80,54,40,83,56,64,45,56,69
+S-DATA-6,standard,DATA,DATA,BA,WEB,0.59,0.4943,0.4845,True,True,True,,43,67,60,84,66,60,91,59,46,44,51,64
+S-NET-1,standard,NET,NET,DATA,BA,0.5951,0.4246,0.4119,True,True,True,,45,57,70,64,69,56,69,40,94,85,55,40
+S-NET-2,standard,NET,NET,BA,WEB,0.5323,0.4986,0.4794,True,True,True,,43,69,51,68,66,65,49,47,76,82,68,58
+S-NET-3,standard,NET,NET,BA,WEB,0.5818,0.4236,0.4474,True,True,True,,70,42,42,63,55,66,42,64,92,79,44,61
+S-NET-4,standard,NET,NET,BA,SWE,0.5531,0.4746,0.4518,True,True,True,,55,70,57,45,48,56,67,59,88,81,69,57
+S-NET-5,standard,NET,NET,BA,SWE,0.5833,0.4608,0.4561,True,True,True,,64,63,62,46,62,49,52,61,95,86,54,68
+S-NET-6,standard,NET,NET,BA,SWE,0.6624,0.4349,0.4269,True,True,True,,56,54,43,47,47,42,50,40,93,92,47,58
+S-BA-1,standard,BA,BA,WEB,NET,0.6681,0.4203,0.4097,True,True,True,,47,40,42,62,60,41,47,42,68,41,85,77
+S-BA-2,standard,BA,BA,NET,DATA,0.6739,0.4406,0.3853,True,True,True,,56,47,48,61,55,46,57,44,63,69,93,93
+S-BA-3,standard,BA,BA,WEB,SWE,0.679,0.4426,0.4133,True,True,True,,55,47,65,55,65,53,46,43,43,61,88,86
+S-BA-4,standard,BA,BA,DATA,SWE,0.6382,0.4571,0.4135,True,True,True,,53,53,54,67,63,41,61,60,60,43,76,87
+S-BA-5,standard,BA,BA,SWE,NET,0.6763,0.458,0.3941,True,True,True,,63,50,65,67,43,47,46,46,57,54,79,88
+S-BA-6,standard,BA,BA,WEB,NET,0.6233,0.4785,0.4429,True,True,True,,45,48,54,47,67,69,42,54,65,67,92,78
+B-SWE+WEB,borderline,SWE+WEB,SWE,WEB,DATA,0.5718,0.5092,0.4446,True,True,True,True,76,95,57,66,75,77,69,64,67,47,45,53
+B-WEB+DATA,borderline,WEB+DATA,WEB,DATA,BA,0.5621,0.5215,0.5199,True,True,True,True,55,55,46,87,76,80,87,40,52,48,69,65
+B-DATA+BA,borderline,DATA+BA,BA,DATA,WEB,0.5647,0.541,0.4545,True,True,True,True,65,54,49,88,62,70,92,61,62,55,79,81
+B-NET+SWE,borderline,NET+SWE,SWE,NET,BA,0.5836,0.5203,0.3969,True,True,True,True,84,81,70,41,58,63,57,41,85,76,41,58
+B-BA+SWE,borderline,BA+SWE,SWE,BA,DATA,0.6159,0.574,0.3622,True,True,True,True,90,91,69,67,56,45,41,70,56,42,80,77
+
+SUMMARY,top1_accuracy,top3_accuracy
+Standard (n=30),1.0000,1.0000
+Borderline (n=5),1.0000,1.0000
+All (n=35),1.0000,1.0000
+borderline_both_in_top2,5/5
+
+IDF,unit_name,required_by,idf
+,Artificial Intelligence,1,2.098612
+,Business Systems Analysis,1,2.098612
+,Computer Networks,1,2.098612
+,Data Structures and Algorithms,1,2.098612
+,IT Project Management,1,2.098612
+,Mobile Application Development,1,2.098612
+,Object Oriented Programming,1,2.098612
+,Operating Systems,1,2.098612
+,Probability and Statistics I,1,2.098612
+,Web Application Development,1,2.098612
+,Software Engineering,2,1.693147
+,Database Systems,3,1.405465
+
+config,seed=42,"high=(75, 95)","low=(40, 70)",fitted_at=2026-09-30T10:41:25+00:00
