@@ -25,35 +25,43 @@ import random
 from app.seed import catalog
 from services.recommendation_engine import build_model, recommend
 
+# A fixed random seed: the "random" marks come out the same on every run,
+# so your Chapter 5 numbers are reproducible.
 SEED = 42
-PER_OPPORTUNITY = 6
-HIGH, LOW = (75, 95), (40, 70)
+PER_OPPORTUNITY = 6                       # 6 standard students per opportunity → 30 in total
+HIGH, LOW = (75, 95), (40, 70)            # mark ranges for strong units / everything else
+# Borderline students are strong in TWO opportunities' essential units at once.
 BORDERLINE_PAIRS = [("SWE", "WEB"), ("WEB", "DATA"), ("DATA", "BA"), ("NET", "SWE"), ("BA", "SWE")]
 RESULTS_PATH = os.path.join(os.path.dirname(__file__), "results.csv")
 
 # Plain-data model inputs. Unit ids are 1..12 and opportunity ids 1..5, in catalogue order.
-UNIT_IDS = {name: i for i, name in enumerate(catalog.UNITS, start=1)}
-UNIT_NAMES = {uid: name for name, uid in UNIT_IDS.items()}
-OPP_BY_KEY = {o["key"]: o for o in catalog.OPPORTUNITIES}
-OPP_ID = {o["key"]: i for i, o in enumerate(catalog.OPPORTUNITIES, start=1)}
-KEY_BY_ID = {v: k for k, v in OPP_ID.items()}
+UNIT_IDS = {name: i for i, name in enumerate(catalog.UNITS, start=1)}     # name → id
+UNIT_NAMES = {uid: name for name, uid in UNIT_IDS.items()}                 # id → name
+OPP_BY_KEY = {o["key"]: o for o in catalog.OPPORTUNITIES}                  # "SWE" → details
+OPP_ID = {o["key"]: i for i, o in enumerate(catalog.OPPORTUNITIES, start=1)}  # "SWE" → 1
+KEY_BY_ID = {v: k for k, v in OPP_ID.items()}                              # 1 → "SWE"
 
 
 def essential_units(key: str) -> list[int]:
+    """Ids of the ESSENTIAL units of one opportunity, e.g. essential_units("NET")."""
     return [UNIT_IDS[c] for c, imp, _ in OPP_BY_KEY[key]["requirements"] if imp == "essential"]
 
 
 def make_student(rng: random.Random, strong_in: list[str]) -> dict[int, int]:
+    """Random marks for all 12 units: HIGH in the essential units of the given
+    opportunities, LOW everywhere else."""
     strong = {u for key in strong_in for u in essential_units(key)}
+    # rng.randint(*HIGH) = rng.randint(75, 95): a random whole number in that range.
     return {uid: rng.randint(*HIGH) if uid in strong else rng.randint(*LOW)
             for uid in UNIT_IDS.values()}
 
 
 def build_students() -> list[dict]:
+    """The 30 standard + 5 borderline labelled students. `expected` is the right answer."""
     rng = random.Random(SEED)
     students = []
     for opp in catalog.OPPORTUNITIES:
-        for n in range(1, PER_OPPORTUNITY + 1):
+        for n in range(1, PER_OPPORTUNITY + 1):   # n = 1..6
             students.append({"id": f"S-{opp['key']}-{n}", "group": "standard",
                              "expected": [opp["key"]], "marks": make_student(rng, [opp["key"]])})
     for n, pair in enumerate(BORDERLINE_PAIRS, start=1):
@@ -63,6 +71,8 @@ def build_students() -> list[dict]:
 
 
 def evaluate():
+    """Fit the model on the demo opportunities, then rank every synthetic student.
+    Returns (model, one result row per student)."""
     model = build_model([{
         "id": OPP_ID[o["key"]],
         "title": o["title"],
@@ -92,6 +102,7 @@ def evaluate():
 
 
 def accuracy(rows, key):
+    """Share of rows where `key` is True (True counts as 1, False as 0), e.g. 28/30 = 0.933."""
     return sum(r[key] for r in rows) / len(rows) if rows else 0.0
 
 

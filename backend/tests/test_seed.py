@@ -8,6 +8,7 @@ from app.seed.seeder import seed_all
 
 
 def counts():
+    """(active units, partners, opportunities, requirements) currently in the test database."""
     return (AcademicUnit.query.filter_by(is_active=True).count(), IndustryPartner.query.count(),
             InternshipOpportunity.query.count(), OpportunityPrecursor.query.count())
 

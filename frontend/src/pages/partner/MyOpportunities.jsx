@@ -1,3 +1,9 @@
+/**
+ * "My Opportunities" page (/partner): the partner dashboard home.
+ *
+ * Loads the partner's own opportunities from the API and shows them in a table,
+ * with Edit and Close buttons on each row.
+ */
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { parseApiError } from '../../api/client.js';
@@ -13,6 +19,7 @@ function RequirementChips({ requirements }) {
         <span
           key={r.unit_id}
           className={`chip ${r.importance === 'essential' ? 'chip--essential' : ''}`}
+          // title = the tooltip shown when you hover over the chip
           title={`${r.unit_name} (${r.importance}${r.min_mark != null ? `, min ${r.min_mark}` : ''})`}
         >
           {r.unit_name}
@@ -32,19 +39,23 @@ export default function MyOpportunities() {
   // Flash message from the create/edit page, shown once.
   const [notice, setNotice] = useState(location.state?.message || '');
 
+  // Runs once when the page opens: load the list from the API.
   useEffect(() => {
+    // Clear the flash message from the browser history, so a refresh doesn't show it again.
     if (location.state?.message) navigate(location.pathname, { replace: true, state: null });
     fetchMyOpportunities()
-      .then(setOpportunities)
-      .catch((err) => setError(parseApiError(err).message));
+      .then(setOpportunities)                                  // success: store the list
+      .catch((err) => setError(parseApiError(err).message));   // failure: show a message
     // Run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleClose = async (opp) => {
+    // window.confirm shows the browser's OK/Cancel box; stop if the user clicks Cancel.
     if (!window.confirm(`Close "${opp.title}"? Students will no longer see or be matched to it.`)) return;
     try {
       const updated = await closeOpportunity(opp.opportunity_id);
+      // Swap the closed opportunity into the list, so the table updates without reloading.
       setOpportunities((list) => list.map((o) => (o.opportunity_id === updated.opportunity_id ? updated : o)));
       setNotice(`"${updated.title}" is now closed.`);
     } catch (err) {
@@ -57,6 +68,7 @@ export default function MyOpportunities() {
       {notice && <div className="alert alert--success">{notice}</div>}
       {error && <div className="alert alert--error">{error}</div>}
 
+      {/* Three possible states: still loading, loaded but empty, or loaded with rows. */}
       {opportunities === null && !error && <p className="muted">Loading…</p>}
 
       {opportunities?.length === 0 && (
@@ -80,6 +92,7 @@ export default function MyOpportunities() {
               </tr>
             </thead>
             <tbody>
+              {/* One table row per opportunity. `key` lets React track rows efficiently. */}
               {opportunities.map((o) => (
                 <tr key={o.opportunity_id}>
                   {/* data-label feeds the stacked mobile layout (see .table in global.css) */}
@@ -88,6 +101,7 @@ export default function MyOpportunities() {
                     <div className="muted small">{o.sector} · {o.location}</div>
                   </td>
                   <td data-label="Status">
+                    {/* badge--open / badge--closed pick the colour in the CSS */}
                     <span className={`badge badge--${o.status}`}>{o.status}</span>
                   </td>
                   <td data-label="Deadline">{o.application_deadline ?? '—'}</td>
@@ -101,7 +115,7 @@ export default function MyOpportunities() {
                       type="button"
                       className="btn btn--danger btn--sm"
                       onClick={() => handleClose(o)}
-                      disabled={o.status === 'closed'}
+                      disabled={o.status === 'closed'}   // can't close twice
                     >
                       Close
                     </button>

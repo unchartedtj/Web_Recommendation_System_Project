@@ -1,4 +1,10 @@
-"""Unit tests for the pure recommendation maths (no database needed)."""
+"""Unit tests for the pure recommendation maths (no database needed).
+
+These call the engine's pure functions directly with small, hand-made data, so the
+expected numbers can be worked out on paper (see TC05). They run very fast and don't
+touch MySQL. pytest.approx(...) compares decimals with a tiny tolerance, because
+computers can't store most decimals exactly (e.g. 0.1 + 0.2 = 0.30000000000000004).
+"""
 import math
 
 import numpy as np
@@ -44,8 +50,10 @@ def marks_for(default=55, overrides=None):
     return marks
 
 
+# scope="module": build the model once and share it across all tests in this file.
 @pytest.fixture(scope="module")
 def catalog_model():
+    """The model fitted on the 5 seeded demo opportunities."""
     return build_model(catalog_opportunities())
 
 

@@ -1,4 +1,11 @@
-"""Tests for /api/auth (register, login, me)."""
+"""Tests for /api/auth (register, login, me).
+
+Covers your test cases TC01 (valid student registration) and TC02 (duplicate email),
+plus validation, login and the protected /me endpoint.
+(See the top of test_opportunities.py for how pytest tests and fixtures work.)
+Each test follows the same pattern: arrange (prepare data) → act (call the API)
+→ assert (check the status code, the JSON and the database).
+"""
 import pytest
 from flask_jwt_extended import decode_token
 
@@ -11,6 +18,7 @@ ME = "/api/auth/me"
 
 
 def login(client, email, password):
+    """Call the login endpoint and return the whole response (status + JSON)."""
     return client.post(LOGIN, json={"email": email, "password": password})
 
 
@@ -125,6 +133,8 @@ def test_industry_partner_registers(client, partner_payload):
 
 def test_failed_profile_insert_rolls_back_user_row(client, student_payload, monkeypatch):
     """If the role row can't be created, the users row must not be left behind."""
+    # monkeypatch temporarily replaces a function for this test only. Here we swap
+    # _build_profile for one that always crashes, to simulate the second INSERT failing.
     def boom(user, data):
         raise RuntimeError("simulated failure")
     monkeypatch.setattr(services, "_build_profile", boom)
@@ -144,6 +154,7 @@ def test_login_with_correct_credentials_returns_token_with_role(app, client, stu
 
     assert res.status_code == 200
     body = res.get_json()
+    # decode_token opens the JWT so we can read what's inside it (its "claims").
     claims = decode_token(body["access_token"])
     assert claims["role"] == "student"
     assert claims["user_id"] == body["user"]["user_id"]

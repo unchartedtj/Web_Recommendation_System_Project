@@ -1,4 +1,11 @@
-"""API tests: grade helper, recommendation generation (incl. TC04), and retraining."""
+"""API tests: grade helper, recommendation generation (incl. TC04), and retraining.
+
+These test the engine END TO END through the real API and database
+(test_engine.py tests the maths alone, without a database).
+Typical flow in a test: a student logs in → submits marks with POST /api/grades →
+calls POST /api/recommendations/generate → we check the ranking and the saved rows.
+(See the top of test_opportunities.py for how pytest tests and fixtures work.)
+"""
 import pytest
 
 from app.auth.services import create_user_with_profile
@@ -14,7 +21,11 @@ def student_token(client, seeded, student_payload):
 
 
 def full_marks(seeded, default=60, overrides=None):
-    """A complete grade body {unit_id: mark} for all 12 units; override by unit name."""
+    """A complete grade body {unit_id: mark} for all 12 units; override by unit name.
+
+    e.g. full_marks(seeded, 55, {"Computer Networks": 90}) → every unit 55, Networks 90.
+    Keys are strings because JSON object keys are always text.
+    """
     marks = {str(uid): default for uid in seeded.values()}
     for name, mark in (overrides or {}).items():
         marks[str(seeded[name])] = mark
@@ -108,6 +119,7 @@ def test_tc04_eleven_of_twelve_units_returns_400_and_writes_nothing(client, stud
 
 
 def test_tc04_failed_generation_keeps_previous_results(client, student_token, seeded):
+    """A failed run must not wipe the student's earlier, valid results."""
     submit(client, student_token, full_marks(seeded))
     client.post(GENERATE, headers=auth_header(student_token))
     before = [(r.opportunity_id, r.rank) for r in Recommendation.query.order_by(Recommendation.rank)]

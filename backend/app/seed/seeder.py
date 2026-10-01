@@ -1,8 +1,16 @@
 """Idempotent seeding: running it twice leaves the same data (no duplicates).
 
+"Idempotent" = safe to repeat. Instead of blindly INSERTing, every step first looks
+for an existing row and updates it ("upsert" = update or insert).
+
 Units are matched by name, partners by email and opportunities by (partner, title).
 Existing rows are updated to match the catalogue. Data left over from an older
 catalogue is cleaned up (see _prune_demo_opportunities and _prune_units).
+
+Order of work in seed_all():
+    1. units  2. demo partner accounts  3. remove retired demo opportunities
+    4. create/update the 5 demo opportunities  5. remove units no longer in the catalogue
+    6. commit, then retrain the recommendation model
 """
 from datetime import date, timedelta
 
@@ -15,9 +23,11 @@ from services.recommendation_engine import get_engine
 
 
 def _seed_units() -> dict[str, AcademicUnit]:
+    """Make sure all 12 catalogue units exist and are active. Returns {name: unit}."""
+    # Every unit already in the database, keyed by name, e.g. {"Database Systems": <unit>}.
     by_name = {u.unit_name: u for u in AcademicUnit.query.all()}
     for name in catalog.UNITS:
-        unit = by_name.get(name)
+        unit = by_name.get(name)          # None if this unit isn't in the database yet
         if unit is None:
             unit = by_name[name] = AcademicUnit(unit_name=name)
             db.session.add(unit)
@@ -28,6 +38,7 @@ def _seed_units() -> dict[str, AcademicUnit]:
 
 
 def _seed_partners() -> dict:
+    """Create the two demo partner accounts if missing. Returns {"techcorp": partner, ...}."""
     partners = {}
     for key, info in catalog.PARTNERS.items():
         user = User.query.filter_by(email=info["email"]).first()
@@ -42,9 +53,11 @@ def _seed_partners() -> dict:
 
 
 def _seed_opportunities(units: dict, partners: dict) -> list[InternshipOpportunity]:
+    """Create or update the 5 demo opportunities and their requirements."""
     seeded = []
-    for spec in catalog.OPPORTUNITIES:
+    for spec in catalog.OPPORTUNITIES:   # `spec` = one opportunity's details from catalog.py
         partner = partners[spec["partner"]]
+        # Does this partner already have an opportunity with this title?
         opp = InternshipOpportunity.query.filter_by(partner_id=partner.partner_id,
                                                     title=spec["title"]).first()
         if opp is None:
@@ -94,7 +107,9 @@ def _prune_units() -> tuple[int, int]:
     Returns (deleted, deactivated).
     """
     deleted = deactivated = 0
+    # Every unit whose name is NOT in the catalogue list (notin_ = SQL "NOT IN").
     for unit in AcademicUnit.query.filter(AcademicUnit.unit_name.notin_(catalog.UNITS)):
+        # "In use" = at least one grade or requirement still points at this unit.
         in_use = (Grade.query.filter_by(unit_id=unit.unit_id).first() is not None or
                   OpportunityPrecursor.query.filter_by(unit_id=unit.unit_id).first() is not None)
         if in_use:
@@ -109,7 +124,9 @@ def _prune_units() -> tuple[int, int]:
 
 
 def seed_all() -> dict:
+    """Run every seeding step, then retrain the model. Returns counts for the CLI printout."""
     try:
+        # flush() inside each step sends the changes to MySQL; commit() at the end saves them.
         units = _seed_units()
         partners = _seed_partners()
         removed_opps = _prune_demo_opportunities(partners)
@@ -119,6 +136,7 @@ def seed_all() -> dict:
     except Exception:
         db.session.rollback()
         raise
+    # The open opportunities may have changed, so retrain the recommendation model.
     model = get_engine().update_model()
     return {
         "units": len(catalog.UNITS),

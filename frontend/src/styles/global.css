@@ -1,4 +1,18 @@
+/*
+ * Global styles for the whole app (plain CSS, no UI library).
+ *
+ * How to read the class names (a convention called BEM):
+ *   .block            a component, e.g. .field or .btn
+ *   .block__part      a piece inside it, e.g. .field__error (the error text under an input)
+ *   .block--variant   a variation, e.g. .btn--primary (blue) or .btn--danger (red)
+ *
+ * @media (min-width: 600px) { ... } rules only apply on screens at least that wide,
+ * which is how the layout adapts from phones to laptops ("responsive" design).
+ */
+
 /* ---------- Design tokens ---------- */
+/* CSS variables: define each colour once here, then use var(--blue) everywhere.
+   Changing a value here restyles the whole app. */
 :root {
   --blue: #0b3d91;       /* Strathmore-inspired navy */
   --blue-dark: #082c69;

@@ -2,17 +2,21 @@
 
 Returns (cleaned_data, errors) like the auth validators. Per-row requirement errors
 use keys "requirements.<index>.<field>" so the form can show them on the right row.
+Example: {"requirements.1.unit_id": "This unit is already listed"} means the 2nd row
+(rows are counted from 0) chose a unit that an earlier row already uses.
 """
 from datetime import date
 
 from app.models import RequirementImportance
 
 MIN_REQUIREMENTS, MAX_REQUIREMENTS = 2, 5
+# Required text fields and their maximum lengths (matching the database columns).
 TEXT_FIELDS = {"title": 200, "description": 5000, "sector": 100, "location": 150}
 
 
 def _to_int(value):
-    """Parse an int from a JSON number or numeric string; None if not possible."""
+    """Parse an int from a JSON number or numeric string; None if not possible.
+    e.g. 3 → 3, "3" → 3, "3.0" → 3, "3.5" → None, "abc" → None."""
     if isinstance(value, bool):  # bool is a subclass of int; reject True/False
         return None
     try:
@@ -23,6 +27,7 @@ def _to_int(value):
 
 
 def _to_number(value):
+    """Parse any number (decimals allowed); None if not possible."""
     if isinstance(value, bool):
         return None
     try:
@@ -32,9 +37,11 @@ def _to_number(value):
 
 
 def validate_opportunity(data: dict, active_unit_ids: set[int]) -> tuple[dict, dict]:
+    """Check the whole opportunity form. Collects ALL errors, not just the first one."""
     errors: dict[str, str] = {}
     cleaned: dict = {}
 
+    # Title, description, sector, location: required, trimmed, not too long.
     for field, max_len in TEXT_FIELDS.items():
         value = data.get(field)
         value = value.strip() if isinstance(value, str) else ""
@@ -55,6 +62,7 @@ def validate_opportunity(data: dict, active_unit_ids: set[int]) -> tuple[dict, d
     cleaned["slots"] = slots
 
     try:
+        # fromisoformat reads "2026-11-29" into a date; anything else raises ValueError.
         deadline = date.fromisoformat(str(data.get("application_deadline") or ""))
         if deadline <= date.today():
             errors["application_deadline"] = "Deadline must be a future date"
@@ -68,6 +76,8 @@ def validate_opportunity(data: dict, active_unit_ids: set[int]) -> tuple[dict, d
 
 
 def _validate_requirements(raw, active_unit_ids: set[int], errors: dict) -> list[dict]:
+    """Check the requirements list. Adds any problems to `errors` (the same dict the
+    caller uses) and returns the cleaned list."""
     if not isinstance(raw, list):
         errors["requirements"] = "Add between 2 and 5 required units"
         return []
@@ -75,11 +85,12 @@ def _validate_requirements(raw, active_unit_ids: set[int], errors: dict) -> list
         errors["requirements"] = (f"An opportunity must have between {MIN_REQUIREMENTS} "
                                   f"and {MAX_REQUIREMENTS} required units")
 
-    cleaned, seen = [], set()
+    cleaned, seen = [], set()   # `seen` remembers units already used, to catch duplicates
     for i, row in enumerate(raw):
-        prefix = f"requirements.{i}"
+        prefix = f"requirements.{i}"          # e.g. "requirements.0" for the first row
         row = row if isinstance(row, dict) else {}
 
+        # --- Unit: must be chosen, must exist and be active, must not repeat ---
         unit_id = _to_int(row.get("unit_id"))
         if unit_id is None:
             errors[f"{prefix}.unit_id"] = "Choose a unit"
@@ -89,6 +100,7 @@ def _validate_requirements(raw, active_unit_ids: set[int], errors: dict) -> list
             errors[f"{prefix}.unit_id"] = "This unit is already listed"
         seen.add(unit_id)
 
+        # --- Importance: essential (the default if not given) or desirable ---
         importance = row.get("importance") or RequirementImportance.ESSENTIAL
         if importance not in RequirementImportance.ALL:
             errors[f"{prefix}.importance"] = "Importance must be 'essential' or 'desirable'"
@@ -104,6 +116,8 @@ def _validate_requirements(raw, active_unit_ids: set[int], errors: dict) -> list
 
         cleaned.append({"unit_id": unit_id, "importance": importance, "min_mark": min_mark})
 
+    # At least one row must be essential (only reported if the row count itself was OK,
+    # so the partner sees one list-level message at a time).
     if raw and not any(r["importance"] == RequirementImportance.ESSENTIAL for r in cleaned) \
             and "requirements" not in errors:
         errors["requirements"] = "At least one requirement must be essential"

@@ -55,4 +55,4 @@ IDF,unit_name,required_by,idf
 ,Software Engineering,2,1.693147
 ,Database Systems,3,1.405465
 
-config,seed=42,"high=(75, 95)","low=(40, 70)",fitted_at=2026-09-30T10:41:25+00:00
+config,seed=42,"high=(75, 95)","low=(40, 70)",fitted_at=2026-09-30T16:26:09+00:00
