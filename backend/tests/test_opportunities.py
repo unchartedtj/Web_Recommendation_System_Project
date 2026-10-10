@@ -55,12 +55,13 @@ def student_token(client, seeded, student_payload):
 
 
 @pytest.fixture
-def opportunity_body(seeded):
+def opportunity_body(seeded, skill_ids, sector_ids):
     """Returns a FUNCTION that builds a valid request body for creating an opportunity.
 
     Call it with no arguments for the default 2 requirements, or pass your own
     requirement dicts, e.g. opportunity_body({"unit_id": 5, "importance": "essential"}, ...).
     Tests then change one field to make it invalid on purpose.
+    The body also has a sector (IT Support & Infrastructure) and 2 required skills.
     """
     def make(*requirements):
         # If the caller passed no requirements, use a sensible default pair:
@@ -72,13 +73,17 @@ def opportunity_body(seeded):
         return {
             "title": "Systems Support Intern",
             "description": "Help maintain servers and end-user systems.",
-            "sector": "Infrastructure",
+            "sector_id": sector_ids["IT Support & Infrastructure"],
             "location": "Nairobi",
             "duration_months": 3,
             "slots": 2,
             # 30 days from today, so the "deadline must be in the future" rule passes.
             "application_deadline": (date.today() + timedelta(days=30)).isoformat(),
             "requirements": list(reqs),
+            "skills": [
+                {"skill_id": skill_ids["IT Support & Troubleshooting"], "importance": "essential"},
+                {"skill_id": skill_ids["Linux Administration"], "importance": "desirable"},
+            ],
         }
     return make
 
@@ -124,6 +129,25 @@ def test_browse_shows_open_opportunities_with_requirements(client, student_token
         "Object Oriented Programming": ("essential", 60.0),
         "Data Structures and Algorithms": ("essential", 55.0),
         "Software Engineering": ("desirable", None)}   # None = no minimum mark
+    # The sector and the required skills are shown too.
+    assert swe["sector"] == "Software Development"
+    assert {s["name"]: s["importance"] for s in swe["skills"]} == {
+        "Java": "essential", "Git & GitHub": "essential",
+        "Python": "desirable", "SQL": "desirable"}
+
+
+def test_skills_are_listed_grouped_by_category(client, student_token):
+    res = client.get("/api/skills", headers=auth_header(student_token))
+    groups = {g["category"]: [s["name"] for s in g["skills"]]
+              for g in res.get_json()["categories"]}
+    assert res.status_code == 200
+    assert sum(len(names) for names in groups.values()) == 21
+    assert groups["Data"] == ["Excel Data Analysis", "Machine Learning", "Power BI / Tableau", "SQL"]
+
+
+def test_sectors_are_listed(client, student_token):
+    res = client.get("/api/sectors", headers=auth_header(student_token))
+    assert len(res.get_json()["sectors"]) == 7
 
 
 # =============================================================================
@@ -161,9 +185,16 @@ def test_partner_creates_opportunity_with_five_requirements(client, partner_toke
     ("past_deadline", "application_deadline"),      # deadline yesterday
     ("zero_slots", "slots"),                        # slots must be at least 1
     ("missing_title", "title"),                     # only spaces counts as empty
+    ("zero_skills", "skills"),                      # at least 1 required skill
+    ("nine_skills", "skills"),                      # at most 8 required skills
+    ("no_essential_skill", "skills"),               # every skill marked desirable
+    ("duplicate_skill", "skills.1.skill_id"),       # the 2nd skill repeats the 1st
+    ("unknown_skill", "skills.0.skill_id"),         # skill id that doesn't exist
+    ("missing_sector", "sector_id"),                # no sector chosen
+    ("unknown_sector", "sector_id"),                # sector id that doesn't exist
 ])
 def test_invalid_opportunity_returns_400(client, partner_token, opportunity_body, seeded,
-                                         case, expected_key):
+                                         skill_ids, case, expected_key):
     # Start from a VALID body, then break exactly one thing depending on the case.
     body = opportunity_body()
     if case == "one_requirement":
@@ -186,6 +217,22 @@ def test_invalid_opportunity_returns_400(client, partner_token, opportunity_body
         body["slots"] = 0
     elif case == "missing_title":
         body["title"] = "  "
+    elif case == "zero_skills":
+        body["skills"] = []
+    elif case == "nine_skills":
+        body["skills"] = [{"skill_id": sid, "importance": "essential"}
+                          for sid in list(skill_ids.values())[:9]]
+    elif case == "no_essential_skill":
+        for s in body["skills"]:
+            s["importance"] = "desirable"
+    elif case == "duplicate_skill":
+        body["skills"][1]["skill_id"] = body["skills"][0]["skill_id"]
+    elif case == "unknown_skill":
+        body["skills"][0]["skill_id"] = 999999
+    elif case == "missing_sector":
+        del body["sector_id"]
+    elif case == "unknown_sector":
+        body["sector_id"] = 999999
 
     res = post(client, partner_token, body)
 
@@ -204,6 +251,33 @@ def test_inactive_unit_cannot_be_required(client, partner_token, opportunity_bod
     res = post(client, partner_token, opportunity_body())
     assert res.status_code == 400
     assert "requirements.0.unit_id" in res.get_json()["fields"]
+
+
+@pytest.mark.parametrize("kind", ["skill", "sector"])
+def test_inactive_skill_or_sector_cannot_be_chosen(client, partner_token, opportunity_body, kind):
+    from app.models import Sector, Skill
+    body = opportunity_body()
+    if kind == "skill":
+        db.session.get(Skill, body["skills"][0]["skill_id"]).is_active = False
+        expected_key = "skills.0.skill_id"
+    else:
+        db.session.get(Sector, body["sector_id"]).is_active = False
+        expected_key = "sector_id"
+    db.session.commit()
+
+    res = post(client, partner_token, body)
+
+    assert res.status_code == 400
+    assert expected_key in res.get_json()["fields"]
+
+
+def test_partner_can_require_eight_skills(client, partner_token, opportunity_body, skill_ids):
+    body = opportunity_body()
+    body["skills"] = [{"skill_id": sid, "importance": "essential"}
+                      for sid in list(skill_ids.values())[:8]]
+    res = post(client, partner_token, body)
+    assert res.status_code == 201
+    assert len(res.get_json()["opportunity"]["skills"]) == 8
 
 
 def test_student_cannot_post_opportunity(client, student_token, opportunity_body):
@@ -247,7 +321,8 @@ def test_missing_opportunity_returns_404(client, partner_token):
 # Editing and closing
 # =============================================================================
 
-def test_edit_replaces_requirements(client, partner_token, opportunity_body, seeded):
+def test_edit_replaces_requirements(client, partner_token, opportunity_body, seeded, skill_ids,
+                                    sector_ids):
     opp_id = post(client, partner_token, opportunity_body()).get_json()["opportunity"]["opportunity_id"]
     # A new body with 3 DIFFERENT requirements and a new title.
     body = opportunity_body(
@@ -256,6 +331,8 @@ def test_edit_replaces_requirements(client, partner_token, opportunity_body, see
         {"unit_id": seeded["IT Project Management"], "importance": "desirable"},
     )
     body["title"] = "Network Support Intern"
+    body["skills"] = [{"skill_id": skill_ids["Networking (Cisco)"], "importance": "essential"}]
+    body["sector_id"] = sector_ids["Networking & Cybersecurity"]
 
     res = client.put(f"{PARTNER_OPPS}/{opp_id}", json=body, headers=auth_header(partner_token))
 
@@ -265,6 +342,9 @@ def test_edit_replaces_requirements(client, partner_token, opportunity_body, see
     # The old requirements were REPLACED (not added to): exactly these 3 remain.
     assert {r["unit_name"]: r["importance"] for r in opp["requirements"]} == {
         NETWORKS: "essential", OS: "desirable", "IT Project Management": "desirable"}
+    # Skills and sector were replaced too.
+    assert [s["name"] for s in opp["skills"]] == ["Networking (Cisco)"]
+    assert opp["sector"] == "Networking & Cybersecurity"
 
 
 def test_closed_opportunity_hidden_from_browse(client, partner_token, student_token,
