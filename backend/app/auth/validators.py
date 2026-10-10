@@ -2,11 +2,14 @@
 import re   # regular expressions: patterns for checking text formats
 
 # Email pattern, read left to right:
-#   ^[^@\s]+   name with no @ or space        (
-#   @          an @
-#   [^@\s]+    something with no @ or spaces        (the domain, e.g. "strathmore")
-#   \.[A-Za-z]{2,}$   a dot and at least 3 letters at the end  (e.g. ".edu/.com")
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{3,}$")
+#   ^[^@\s]+          name with no @ or spaces              (e.g. "jane.doe")
+#   @                 an @
+#   [^@\s]+           domain with no @ or spaces            (e.g. "strathmore" or "acme.co")
+#   \.(?:ke|com|edu)$ must END in .ke, .com or .edu         (only these 3 are allowed)
+# So jane@strathmore.edu, hr@acme.co.ke, x@strathmore.ac.ke and y@gmail.com are accepted;
+# anything ending in .org, .net, .co.uk etc. is rejected.
+# re.IGNORECASE: "JANE@STRATHMORE.EDU" is accepted too (emails are lowercased anyway).
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.(?:ke|com|edu)$", re.IGNORECASE)
 SELF_REGISTER_ROLES = ("student", "industry_partner")  # create system admin
 # Fields for  sign-up , and the extra fields per role.
 COMMON_FIELDS = ("email", "password", "confirm_password")
@@ -15,7 +18,15 @@ ROLE_FIELDS = {
     "industry_partner": ("organization_name", "contact_person", "phone"),
 }
 
-PHONE_RE = re.compile(r"^\+?[0-9 ()-]{7,12}$")   # phone number must be maximum 12 digits
+# Kenyan phone numbers. Spaces and dashes are removed first, so "0712 345 678" counts as
+# "0712345678". Then the number must be one of:
+#   07XXXXXXXX or 01XXXXXXXX            local format: 0 + 7/1 + 8 more digits (10 digits)
+#   2547XXXXXXXX or +2547XXXXXXXX       international: 254 replaces the leading 0
+# Read left to right:
+#   ^(?:0|\+?254)   starts with 0, or 254 (with an optional + in front)
+#   [17]            then a 7 (mobile, e.g. Safaricom) or a 1 (newer prefixes like 0110...)
+#   \d{8}$          then EXACTLY 8 more digits, and nothing after
+PHONE_RE = re.compile(r"^(?:0|\+?254)[17]\d{8}$")
 
 
 def _clean(value):
@@ -27,8 +38,23 @@ def _clean(value):
 
 def validate_email(email: str) -> str | None:
     if not EMAIL_RE.match(email) or len(email) > 255:
-        return "Enter a valid email address"
+        return "Enter a valid email address ending in .ke, .com or .edu"
     return None
+
+
+def normalize_phone(phone: str) -> str | None:
+    """Return the phone in one standard format (+2547XXXXXXXX), or None if it isn't valid.
+
+    Examples:  "0712 345 678"     → "+254712345678"
+               "254-712-345678"   → "+254712345678"
+               "07123456789"      → None   (one digit too many)
+    Storing one format means the same number always looks the same in the database.
+    """
+    compact = re.sub(r"[\s-]", "", phone)   # remove spaces and dashes
+    if not PHONE_RE.match(compact):
+        return None
+    # The last 9 digits are the same in every format (e.g. 712345678); put +254 in front.
+    return "+254" + compact[-9:]
 
 
 def validate_password(password: str) -> str | None:
@@ -95,14 +121,23 @@ def validate_registration(data: dict) -> tuple[dict, dict]:
             except ValueError:
                 errors["year_of_study"] = "Year of study must be a whole number from 1 to 4"
     else:
-        if "phone" not in errors and not PHONE_RE.match(cleaned["phone"]):
-            errors["phone"] = "Enter a valid phone number"
+        if "phone" not in errors:
+            phone = normalize_phone(cleaned["phone"])
+            if phone is None:
+                errors["phone"] = ("Enter a valid  phone number, "
+                                   "e.g. 0712 345 678 or +254 712 345 678")
+            else:
+                cleaned["phone"] = phone   # save it in the standard +254 format
 
     return cleaned, errors
 
 
 def validate_login(data: dict) -> tuple[dict, dict]:
-    """Login only checks that both fields were filled in; the password check happens in the route."""
+    """Login only checks that both fields were filled in; the password check happens in the route.
+
+    The "email" box also accepts a system admin's USERNAME (e.g. "Admin"). It's lowercased
+    here, so usernames are case-insensitive ("Admin", "admin" and "ADMIN" all work).
+    """
     email = _clean(data.get("email")).lower()
     password = data.get("password") if isinstance(data.get("password"), str) else ""
     errors = {}
