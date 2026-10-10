@@ -8,16 +8,17 @@ Existing rows are updated to match the catalogue. Data left over from an older
 catalogue is cleaned up (see _prune_demo_opportunities and _prune_units).
 
 Order of work in seed_all():
-    1. units  2. demo partner accounts  3. remove retired demo opportunities
-    4. create/update the 5 demo opportunities  5. remove units no longer in the catalogue
-    6. commit, then retrain the recommendation model
+    1. units, skills, sectors  2. demo partner accounts + default admin
+    3. remove retired demo opportunities  4. create/update the 5 demo opportunities
+    5. remove units no longer in the catalogue  6. commit, then retrain the model
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from app.auth.services import create_user_with_profile
 from app.extensions import db
-from app.models import (AcademicUnit, Grade, InternshipOpportunity, OpportunityPrecursor,
-                        OpportunityStatus, User)
+from app.models import (AcademicUnit, Grade, GradeProfile, InternshipOpportunity,
+                        OpportunityPrecursor, OpportunitySkill, OpportunityStatus, Sector, Skill,
+                        StudentInterest, StudentSkill, User)
 from app.seed import catalog
 from services.recommendation_engine import get_engine
 
@@ -37,6 +38,34 @@ def _seed_units() -> dict[str, AcademicUnit]:
     return {name: by_name[name] for name in catalog.UNITS}
 
 
+def _seed_skills() -> dict[str, Skill]:
+    """Make sure all preset skills exist. Returns {name: skill}.
+
+    New skills start active. An existing skill keeps its is_active value, so re-seeding
+    never re-activates a skill an admin deliberately switched off.
+    """
+    by_name = {s.name: s for s in Skill.query.all()}
+    for name, category in catalog.SKILLS:
+        skill = by_name.get(name)
+        if skill is None:
+            skill = by_name[name] = Skill(name=name, is_active=True)
+            db.session.add(skill)
+        skill.category = category
+    db.session.flush()
+    return by_name
+
+
+def _seed_sectors() -> dict[str, Sector]:
+    """Make sure all preset sectors exist. Returns {name: sector}. (Same rules as skills.)"""
+    by_name = {s.name: s for s in Sector.query.all()}
+    for name in catalog.SECTORS:
+        if name not in by_name:
+            by_name[name] = Sector(name=name, is_active=True)
+            db.session.add(by_name[name])
+    db.session.flush()
+    return by_name
+
+
 def _seed_partners() -> dict:
     """Create the two demo partner accounts if missing. Returns {"techcorp": partner, ...}."""
     partners = {}
@@ -52,11 +81,77 @@ def _seed_partners() -> dict:
     return partners
 
 
-def _seed_opportunities(units: dict, partners: dict) -> list[InternshipOpportunity]:
-    """Create or update the 5 demo opportunities and their requirements."""
+def _seed_admin() -> bool:
+    """Create the default system admin (username "Admin") if it doesn't exist yet.
+
+    Returns True if it was created now. An existing admin is left alone, so re-seeding
+    never resets a password.
+    """
+    info = catalog.DEFAULT_ADMIN
+    if User.query.filter_by(email=info["email"]).first():
+        return False
+    # Same function the register endpoint and `flask create-admin` use (hashes the password,
+    # creates the users row + system_admins row together). It doesn't apply the 8-character
+    # password rule, which is why the short demo password "Admin" is allowed here.
+    create_user_with_profile({"email": info["email"], "password": info["password"],
+                              "role": "system_admin", "name": info["name"]})
+    return True
+
+
+def _seed_demo_students(units: dict, skills: dict, sectors: dict) -> list:
+    """Create the demo student accounts and (for those with one) their profile.
+
+    A grade profile is only created if the student has none yet, so re-seeding doesn't
+    pile up grade history. Skills and interests are re-synced every time.
+    Returns the Student rows that have a complete profile.
+    """
+    complete = []
+    for spec in catalog.DEMO_STUDENTS:
+        user = User.query.filter_by(email=spec["email"]).first()
+        if user is None:
+            user = create_user_with_profile({
+                "email": spec["email"], "password": catalog.DEMO_PASSWORD, "role": "student",
+                **{k: spec[k] for k in ("admission_no", "first_name", "last_name", "course",
+                                        "year_of_study")}})
+        student = user.student
+        profile = spec["profile"]
+        if profile is None:
+            continue
+
+        if GradeProfile.query.filter_by(student_id=student.student_id).first() is None:
+            gp = GradeProfile(student_id=student.student_id)
+            db.session.add(gp)
+            db.session.flush()
+            for i, name in enumerate(catalog.UNITS):
+                base = 56 + (i * 5) % 13            # 56..68, varied from unit to unit
+                mark = profile["marks"].get(name, base)
+                db.session.add(Grade(profile_id=gp.profile_id, unit_id=units[name].unit_id,
+                                     grade_value=mark))
+            student.profile_updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        student.skills.clear()
+        student.interests.clear()
+        db.session.flush()
+        for name in profile["skills"]:
+            student.skills.append(StudentSkill(skill_id=skills[name].skill_id))
+        for name in profile["interests"]:
+            student.interests.append(StudentInterest(sector_id=sectors[name].sector_id))
+        if student.profile_updated_at is None:
+            student.profile_updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        complete.append(student)
+    db.session.flush()
+    return complete
+
+
+def _seed_opportunities(units: dict, partners: dict, skills: dict,
+                        sectors: dict) -> list[InternshipOpportunity]:
+    """Create or update the 5 demo opportunities, their sector, unit requirements and skills."""
     seeded = []
     for spec in catalog.OPPORTUNITIES:   # `spec` = one opportunity's details from catalog.py
         partner = partners[spec["partner"]]
+        # Read the sector id BEFORE adding a new opportunity: reading it can trigger a query,
+        # and SQLAlchemy would then save the half-built opportunity (with no sector) first.
+        sector_id = sectors[spec["sector"]].sector_id
         # Does this partner already have an opportunity with this title?
         opp = InternshipOpportunity.query.filter_by(partner_id=partner.partner_id,
                                                     title=spec["title"]).first()
@@ -64,19 +159,24 @@ def _seed_opportunities(units: dict, partners: dict) -> list[InternshipOpportuni
             # The deadline and status are set only on first creation, so a re-seed
             # doesn't reopen or extend an opportunity someone changed.
             opp = InternshipOpportunity(partner_id=partner.partner_id, title=spec["title"],
-                                        status=OpportunityStatus.OPEN,
+                                        sector_id=sector_id, status=OpportunityStatus.OPEN,
                                         application_deadline=date.today() + timedelta(days=60))
             db.session.add(opp)
-        for field in ("description", "sector", "location", "duration_months", "slots"):
+        for field in ("description", "location", "duration_months", "slots"):
             setattr(opp, field, spec[field])
+        opp.sector_id = sector_id
         db.session.flush()
 
-        # Re-sync requirements to exactly match the catalogue.
+        # Re-sync unit requirements and required skills to exactly match the catalogue.
         opp.precursors.clear()
+        opp.skills.clear()
         db.session.flush()
         for name, importance, min_mark in spec["requirements"]:
             opp.precursors.append(OpportunityPrecursor(
                 unit_id=units[name].unit_id, importance=importance, min_mark=min_mark))
+        for name, importance in spec["skills"]:
+            opp.skills.append(OpportunitySkill(skill_id=skills[name].skill_id,
+                                               importance=importance))
         seeded.append(opp)
     return seeded
 
@@ -123,26 +223,46 @@ def _prune_units() -> tuple[int, int]:
     return deleted, deactivated
 
 
-def seed_all() -> dict:
-    """Run every seeding step, then retrain the model. Returns counts for the CLI printout."""
+def seed_all(include_demo_students: bool = True) -> dict:
+    """Run every seeding step, then retrain the model. Returns counts for the CLI printout.
+
+    include_demo_students=False skips the 3 demo students (most tests use this, so their
+    row counts only see the data each test creates itself).
+    """
     try:
         # flush() inside each step sends the changes to MySQL; commit() at the end saves them.
         units = _seed_units()
+        skills = _seed_skills()
+        sectors = _seed_sectors()
         partners = _seed_partners()
+        admin_created = _seed_admin()
         removed_opps = _prune_demo_opportunities(partners)
-        opportunities = _seed_opportunities(units, partners)
+        opportunities = _seed_opportunities(units, partners, skills, sectors)
         deleted_units, deactivated_units = _prune_units()
+        demo_students = (_seed_demo_students(units, skills, sectors)
+                         if include_demo_students else [])
+        demo_student_ids = [s.student_id for s in demo_students]
         db.session.commit()
     except Exception:
         db.session.rollback()
         raise
     # The open opportunities may have changed, so retrain the recommendation model.
-    model = get_engine().update_model()
+    engine = get_engine()
+    model = engine.update_model()
+    # Give the demo students with a profile fresh recommendations.
+    for student_id in demo_student_ids:
+        engine.generate_recommendations(student_id)
     return {
         "units": len(catalog.UNITS),
         "partners": [p["email"] for p in catalog.PARTNERS.values()],
+        "students": [s["email"] for s in catalog.DEMO_STUDENTS],
+        "admin_created": admin_created,
         "opportunities": len(opportunities),
         "requirements": sum(len(o["requirements"]) for o in catalog.OPPORTUNITIES),
+        "skills": len(catalog.SKILLS),
+        "sectors": len(catalog.SECTORS),
+        "skill_requirements": sum(len(o["skills"]) for o in catalog.OPPORTUNITIES),
+        "model_skills": len(model["skill_vocabulary"]),
         "removed_opportunities": removed_opps,
         "deleted_units": deleted_units,
         "deactivated_units": deactivated_units,
