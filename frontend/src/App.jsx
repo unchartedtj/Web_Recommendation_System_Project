@@ -13,6 +13,10 @@ import MyOpportunities from './pages/partner/MyOpportunities.jsx';
 import OpportunityEditor from './pages/partner/OpportunityEditor.jsx';
 import Register from './pages/Register.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
+import BrowseOpportunities from './pages/student/BrowseOpportunities.jsx';
+import OpportunityDetails from './pages/student/OpportunityDetails.jsx';
+import StudentProfile from './pages/student/StudentProfile.jsx';
+import StudentRecommendations from './pages/student/StudentRecommendations.jsx';
 import { ROLES, dashboardPathFor } from './utils/roles.js';
 
 export default function App() {
@@ -32,6 +36,10 @@ export default function App() {
           allowed role. */}
       <Route element={<ProtectedRoute allowedRoles={[ROLES.STUDENT]} />}>
         <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/student/profile" element={<StudentProfile />} />
+        <Route path="/student/recommendations" element={<StudentRecommendations />} />
+        <Route path="/student/opportunities" element={<BrowseOpportunities />} />
+        <Route path="/student/opportunities/:id" element={<OpportunityDetails />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLES.PARTNER]} />}>
         {/* The partner dashboard home is the "My Opportunities" list. */}
