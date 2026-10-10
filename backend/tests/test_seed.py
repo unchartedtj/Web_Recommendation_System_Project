@@ -2,23 +2,39 @@
 from app.auth.services import create_user_with_profile
 from app.extensions import db
 from app.models import (AcademicUnit, Grade, GradeProfile, IndustryPartner, InternshipOpportunity,
-                        OpportunityPrecursor)
+                        OpportunityPrecursor, OpportunitySkill, Sector, Skill)
 from app.seed import catalog
 from app.seed.seeder import seed_all
 
 
 def counts():
-    """(active units, partners, opportunities, requirements) currently in the test database."""
+    """(active units, partners, opportunities, unit requirements, skills, sectors,
+    skill requirements) currently in the test database."""
     return (AcademicUnit.query.filter_by(is_active=True).count(), IndustryPartner.query.count(),
-            InternshipOpportunity.query.count(), OpportunityPrecursor.query.count())
+            InternshipOpportunity.query.count(), OpportunityPrecursor.query.count(),
+            Skill.query.count(), Sector.query.count(), OpportunitySkill.query.count())
+
+
+EXPECTED = (12, 2, 5, 15, 21, 7, 20)
 
 
 def test_seed_is_idempotent(app):
     seed_all()
     first = counts()
     seed_all()
-    assert counts() == first == (12, 2, 5, 15)
+    assert counts() == first == EXPECTED
     assert sorted(u.unit_name for u in AcademicUnit.query) == sorted(catalog.UNITS)
+    # Every demo opportunity has its preset sector.
+    sectors = {o.title: o.sector.name for o in InternshipOpportunity.query}
+    assert sectors["Data Analytics & AI Intern"] == "Data Analytics & AI"
+
+
+def test_reseeding_does_not_reactivate_a_skill_an_admin_switched_off(app):
+    seed_all()
+    db.session.query(Skill).filter_by(name="PHP").update({"is_active": False})
+    db.session.commit()
+    seed_all()
+    assert Skill.query.filter_by(name="PHP").one().is_active is False
 
 
 def test_seed_cleans_up_an_older_catalogue(app, student_payload):
@@ -29,7 +45,8 @@ def test_seed_cleans_up_an_older_catalogue(app, student_payload):
     retired_unit = AcademicUnit(unit_code="OLD-1", unit_name="Legacy Retired Unit")
     graded = AcademicUnit(unit_code="OLD-2", unit_name="Legacy Graded Unit")
     reused = AcademicUnit(unit_code="OLD-3", unit_name="Database Systems")
-    db.session.add_all([retired_unit, graded, reused])
+    old_sector = Sector(name="Software Development")   # opportunities need a sector
+    db.session.add_all([retired_unit, graded, reused, old_sector])
     db.session.commit()
 
     student = create_user_with_profile({**student_payload, "year_of_study": 3}).student
@@ -42,7 +59,7 @@ def test_seed_cleans_up_an_older_catalogue(app, student_payload):
     techcorp = create_user_with_profile({**catalog.PARTNERS["techcorp"], "role": "industry_partner",
                                          "password": catalog.DEMO_PASSWORD}).industry_partner
     retired = InternshipOpportunity(partner_id=techcorp.partner_id, title="Retired Demo Intern",
-                                    slots=1, status="open")
+                                    slots=1, status="open", sector_id=old_sector.sector_id)
     db.session.add(retired)
     db.session.flush()
     db.session.add(OpportunityPrecursor(opportunity_id=retired.opportunity_id,
@@ -57,7 +74,7 @@ def test_seed_cleans_up_an_older_catalogue(app, student_payload):
     assert db.session.get(AcademicUnit, graded.unit_id).is_active is False  # kept for its grade
     kept = db.session.get(AcademicUnit, reused.unit_id)                   # reused by name
     assert (kept.unit_code, kept.is_active) == (None, True)
-    assert counts() == (12, 2, 5, 15)
+    assert counts() == EXPECTED
 
 
 def test_seed_cli_command(app):
