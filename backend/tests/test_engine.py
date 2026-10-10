@@ -11,8 +11,10 @@ import numpy as np
 import pytest
 
 from app.seed import catalog
-from services.recommendation_engine import (IncompleteGradesError, build_model,
-                                            build_student_vector, rank, recommend, score)
+from services.recommendation_engine import (DEFAULT_WEIGHTS, IncompleteGradesError, build_model,
+                                            build_skill_vector, build_student_vector, combine,
+                                            interest_scores, rank, recommend, score,
+                                            skill_scores, validate_weights)
 
 E, D = "essential", "desirable"
 
@@ -21,9 +23,11 @@ def req(unit_id, importance=E, min_mark=None):
     return {"unit_id": unit_id, "importance": importance, "min_mark": min_mark}
 
 
-# The seed catalogue as plain data. Unit ids are 1..12 in catalogue order.
+# The seed catalogue as plain data. Ids are 1..N in catalogue order.
 UNIT_ID = {name: i for i, name in enumerate(catalog.UNITS, start=1)}
 OPP_ID = {o["key"]: i for i, o in enumerate(catalog.OPPORTUNITIES, start=1)}
+SKILL_ID = {name: i for i, (name, _) in enumerate(catalog.SKILLS, start=1)}
+SECTOR_ID = {name: i for i, name in enumerate(catalog.SECTORS, start=1)}
 
 # Short aliases to keep the tests readable.
 OOP = UNIT_ID["Object Oriented Programming"]
@@ -36,10 +40,13 @@ OS = UNIT_ID["Operating Systems"]
 
 
 def catalog_opportunities():
+    """The 5 demo opportunities with their units, skills and sector, as the engine expects."""
     return [{
         "id": OPP_ID[o["key"]],
         "title": o["title"],
+        "sector_id": SECTOR_ID[o["sector"]],
         "requirements": [req(UNIT_ID[name], imp, mm) for name, imp, mm in o["requirements"]],
+        "skills": [{"skill_id": SKILL_ID[name], "importance": imp} for name, imp in o["skills"]],
     } for o in catalog.OPPORTUNITIES]
 
 
@@ -118,9 +125,19 @@ def test_tc06_strong_student_scores_matching_opportunity_higher():
 # ---- TC07: top recommendation ------------------------------------------------------
 
 def test_tc07_strongest_in_oop_and_dsa_gets_software_development_first(catalog_model):
-    results = recommend(marks_for(55, {OOP: 92, DSA: 90}), catalog_model)
+    """TC07 (full version): SWE units + Java/Git + the Software Development interest."""
+    results = recommend(marks_for(55, {OOP: 92, DSA: 90}), catalog_model,
+                        skill_ids=[SKILL_ID["Java"], SKILL_ID["Git & GitHub"]],
+                        sector_ids=[SECTOR_ID["Software Development"]])
     assert results[0]["opportunity_id"] == OPP_ID["SWE"]
     assert results[0]["title"] == "Software Development Intern"
+    assert results[0]["interest_match"] is True
+
+
+def test_grades_alone_still_rank_software_development_first(catalog_model):
+    # With no skills and no interests, the grades part decides on its own.
+    results = recommend(marks_for(55, {OOP: 92, DSA: 90}), catalog_model)
+    assert results[0]["opportunity_id"] == OPP_ID["SWE"]
 
 
 # ---- TC08: complete ranking, eligible first ----------------------------------------
@@ -226,3 +243,106 @@ def test_empty_model_returns_no_recommendations():
     model = build_model([])
     assert model["vocabulary"] == []
     assert recommend({1: 50}, model) == []
+
+
+# =============================================================================
+# Skills, interests and the combined score
+# =============================================================================
+
+def skill(skill_id, importance=E):
+    return {"skill_id": skill_id, "importance": importance}
+
+
+def test_skill_score_higher_with_essential_than_desirable_skills():
+    # One opportunity: skill 1 essential, skill 2 desirable (both idf 1.0, so weights 2 : 1).
+    model = build_model([{"id": 1, "requirements": [req(1)], "skills": [skill(1, E), skill(2, D)]}])
+    has_essential = skill_scores(build_skill_vector([1], model), model)[0]
+    has_desirable = skill_scores(build_skill_vector([2], model), model)[0]
+    # cos([1,0],[2,1]) = 2/√5 = 0.894   vs   cos([0,1],[2,1]) = 1/√5 = 0.447
+    assert has_essential == pytest.approx(2 / math.sqrt(5))
+    assert has_desirable == pytest.approx(1 / math.sqrt(5))
+    assert has_essential > has_desirable
+
+
+def test_rare_skill_has_higher_idf_than_common_sql(catalog_model):
+    idf = dict(zip(catalog_model["skill_vocabulary"], catalog_model["skill_idf"]))
+    # n = 5 opportunities. SQL is required by 3 (df=3); Java by 1 (df=1).
+    assert idf[SKILL_ID["SQL"]] == pytest.approx(math.log(6 / 4) + 1)
+    assert idf[SKILL_ID["Java"]] == pytest.approx(math.log(6 / 2) + 1)
+    assert idf[SKILL_ID["SQL"]] < idf[SKILL_ID["Java"]]
+
+
+def test_skills_no_opportunity_requires_are_ignored(catalog_model):
+    # PHP is a preset skill, but no demo opportunity requires it → not in the vocabulary.
+    assert SKILL_ID["PHP"] not in catalog_model["skill_vocabulary"]
+    scores = skill_scores(build_skill_vector([SKILL_ID["PHP"]], catalog_model), catalog_model)
+    assert list(scores) == [0.0] * 5
+
+
+def test_interest_score_is_1_for_matching_sector_else_0(catalog_model):
+    scores = interest_scores([SECTOR_ID["Data Analytics & AI"]], catalog_model)
+    expected = [1.0 if o["key"] == "DATA" else 0.0 for o in catalog.OPPORTUNITIES]
+    assert list(scores) == expected
+
+
+def test_final_score_is_the_weighted_sum_and_within_0_and_1(catalog_model):
+    rng = np.random.default_rng(3)
+    all_skills = list(SKILL_ID.values())
+    for _ in range(30):
+        marks = {uid: float(rng.uniform(0, 100)) for uid in UNIT_ID.values()}
+        skills = list(rng.choice(all_skills, size=4, replace=False))
+        sectors = [int(rng.integers(1, 8))]
+        for r in recommend(marks, catalog_model, skill_ids=skills, sector_ids=sectors):
+            b = r["breakdown"]
+            expected = combine(b["grade_score"], b["skill_score"], b["interest_score"],
+                               DEFAULT_WEIGHTS)
+            assert r["match_score"] == pytest.approx(expected, abs=1e-3)
+            assert 0.0 <= r["match_score"] <= 1.0
+
+
+def test_changing_the_weights_changes_the_ranking():
+    # A matches the student's grades better; B matches the student's career interest.
+    model = build_model([
+        {"id": 1, "sector_id": 1, "requirements": [req(1)], "skills": []},   # A
+        {"id": 2, "sector_id": 2, "requirements": [req(2)], "skills": []},   # B
+    ])
+    marks, interests = {1: 90, 2: 60}, [2]
+
+    grades_only = recommend(marks, model, sector_ids=interests,
+                            weights={"grades": 1.0, "skills": 0.0, "interests": 0.0})
+    interest_heavy = recommend(marks, model, sector_ids=interests,
+                               weights={"grades": 0.5, "skills": 0.0, "interests": 0.5})
+
+    assert [r["opportunity_id"] for r in grades_only] == [1, 2]
+    assert [r["opportunity_id"] for r in interest_heavy] == [2, 1]
+
+
+def test_missing_skills_are_listed_but_do_not_affect_eligibility(catalog_model):
+    labels = {sid: name for name, sid in SKILL_ID.items()}
+    results = {r["opportunity_id"]: r for r in
+               recommend(marks_for(80), catalog_model, skill_ids=[], skill_labels=labels)}
+    swe = results[OPP_ID["SWE"]]
+    assert swe["meets_requirements"] is True                 # unit minimums are met
+    assert sorted(swe["missing_essential_skills"]) == ["Git & GitHub", "Java"]
+    assert sorted(swe["missing_desirable_skills"]) == ["Python", "SQL"]
+
+
+def test_tc08_with_all_three_parts(catalog_model):
+    marks = marks_for(65, {STATS: 50, NETW: 45})   # fails Data and Networking minimums
+    results = recommend(marks, catalog_model, skill_ids=[SKILL_ID["Python"], SKILL_ID["SQL"]],
+                        sector_ids=[SECTOR_ID["Data Analytics & AI"]])
+    assert [r["rank"] for r in results] == [1, 2, 3, 4, 5]
+    eligibility = [r["meets_requirements"] for r in results]
+    assert eligibility == sorted(eligibility, reverse=True)
+    # Even with matching skills AND interest, Data Analytics is ranked below every eligible one.
+    assert results[-2]["opportunity_id"] in (OPP_ID["DATA"], OPP_ID["NET"])
+
+
+@pytest.mark.parametrize("weights", [
+    {"grades": 0.5, "skills": 0.25, "interests": 0.15},        # sums to 0.9
+    {"grades": 1.2, "skills": -0.2, "interests": 0.0},         # negative
+    {"grades": 1.0, "skills": 0.0},                            # missing key
+])
+def test_invalid_weights_are_rejected(weights):
+    with pytest.raises(ValueError):
+        validate_weights(weights)
