@@ -50,21 +50,30 @@ def register_cli(app: Flask):
     def seed_data():
         """Seed units, demo partners and opportunities (safe to run more than once)."""
         # Imported here (not at the top) so these modules only load when the command runs.
-        from app.seed.catalog import DEMO_PASSWORD
+        from app.seed.catalog import DEFAULT_ADMIN, DEMO_PASSWORD
         from app.seed.seeder import seed_all
 
         summary = seed_all()   # does all the work and returns counts for the printout below
         click.secho("Seed complete.", fg="green")
         click.echo(f"  Academic units:      {summary['units']}")
+        click.echo(f"  Skills / sectors:    {summary['skills']} / {summary['sectors']}")
         click.echo(f"  Opportunities:       {summary['opportunities']} "
-                   f"({summary['requirements']} requirements)")
+                   f"({summary['requirements']} unit requirements, "
+                   f"{summary['skill_requirements']} skill requirements)")
         # Only mention clean-up if something was actually cleaned up.
         if summary["removed_opportunities"] or summary["deleted_units"] or summary["deactivated_units"]:
             click.echo(f"  Cleaned up old data: {summary['removed_opportunities']} demo opportunities "
                        f"removed, {summary['deleted_units']} units deleted, "
                        f"{summary['deactivated_units']} units deactivated (still referenced)")
         click.echo(f"  Model fitted on:     {summary['model_opportunities']} open opportunities, "
-                   f"{summary['model_units']} units")
+                   f"{summary['model_units']} units, {summary['model_skills']} skills")
         click.echo("  Demo partner logins (password: " + DEMO_PASSWORD + "):")
         for email in summary["partners"]:
             click.echo(f"    - {email}")
+        click.echo("  Demo student logins (password: " + DEMO_PASSWORD + "):")
+        for email in summary["students"]:
+            click.echo(f"    - {email}")
+        # The admin logs in with a username (not an email) on the normal Login page.
+        status = "created" if summary["admin_created"] else "already exists"
+        click.echo(f"  Default admin ({status}): username \"{DEFAULT_ADMIN['name']}\" "
+                   "on the Login page")
