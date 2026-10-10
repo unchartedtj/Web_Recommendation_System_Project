@@ -34,7 +34,8 @@ const ROLE_FIELDS = {
   [ROLES.PARTNER]: [
     { name: 'organization_name', label: 'Organization name', autoComplete: 'organization' },
     { name: 'contact_person', label: 'Contact person', autoComplete: 'name' },
-    { name: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', placeholder: '+254 7XX XXX XXX' },
+    // Must be a Kenyan number: 07XX XXX XXX / 01XX XXX XXX, or +254 7XX XXX XXX.
+    { name: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', placeholder: 'e.g. 0712 345 678' },
   ],
 };
 
