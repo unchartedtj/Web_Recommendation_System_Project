@@ -69,7 +69,10 @@ export default function Login() {
         {successMessage && <div className="alert alert--success">{successMessage}</div>}
         {formError && <div className="alert alert--error">{formError}</div>}
 
-        <FormField label="Email" name="email" type="email" autoComplete="email"
+        {/* Labelled "Username" for everyone. The admin types "Admin"; students and partners
+            type the email they registered with (the backend accepts either).
+            type="text" (not "email") so a plain username like "Admin" is allowed. */}
+        <FormField label="Username" name="email" type="text" autoComplete="username"
           value={form.email} onChange={handleChange} error={errors.email} />
         <FormField label="Password" name="password" type="password" autoComplete="current-password"
           value={form.password} onChange={handleChange} error={errors.password} />
