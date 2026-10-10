@@ -113,6 +113,35 @@ def test_invalid_student_fields_return_400(client, student_payload, field, value
     assert field in res.get_json()["fields"]
 
 
+# Only emails ending in .ke, .com or .edu may register.
+@pytest.mark.parametrize("email", [
+    "jane.doe@strathmore.edu",
+    "jane.doe@strathmore.ac.ke",
+    "hr@acme.co.ke",
+    "jane.doe@gmail.com",
+    "JANE.DOE@STRATHMORE.EDU",      # upper case is fine (stored lowercase)
+])
+def test_allowed_email_endings_can_register(client, student_payload, email):
+    student_payload["email"] = email
+    assert client.post(REGISTER, json=student_payload).status_code == 201
+
+
+@pytest.mark.parametrize("email", [
+    "jane@example.org",             # .org not allowed
+    "jane@example.net",             # .net not allowed
+    "jane@example.co.uk",           # .uk not allowed
+    "jane@strathmore.educ",         # must END exactly in .edu
+    "jane@strathmore",              # no ending at all
+])
+def test_other_email_endings_are_rejected(client, student_payload, email):
+    student_payload["email"] = email
+
+    res = client.post(REGISTER, json=student_payload)
+
+    assert res.status_code == 400
+    assert "email" in res.get_json()["fields"]
+
+
 def test_system_admin_cannot_self_register(client, student_payload):
     student_payload["role"] = "system_admin"
 
@@ -129,6 +158,47 @@ def test_industry_partner_registers(client, partner_payload):
     assert res.status_code == 201
     assert res.get_json()["user"]["name"] == "Acme Kenya Ltd"
     assert IndustryPartner.query.count() == 1
+
+
+# ---- Phone numbers (Kenyan formats) ------------------------------------------------
+
+# Every accepted format is saved the same way: +254 followed by 9 digits.
+@pytest.mark.parametrize("phone", [
+    "0712345678",          # local mobile
+    "0712 345 678",        # with spaces
+    "0712-345-678",        # with dashes
+    "0110345678",          # newer 01 prefix
+    "+254712345678",       # international
+    "+254 712 345 678",    # international with spaces
+    "254712345678",        # international without the +
+])
+def test_valid_kenyan_phone_is_accepted_and_standardised(client, partner_payload, phone):
+    partner_payload["phone"] = phone
+
+    res = client.post(REGISTER, json=partner_payload)
+
+    assert res.status_code == 201
+    expected = "+254" + phone.replace(" ", "").replace("-", "")[-9:]
+    assert res.get_json()["user"]["profile"]["phone"] == expected
+
+
+@pytest.mark.parametrize("phone", [
+    "07123456789",         # one digit too many
+    "071234567",           # one digit too few
+    "0812345678",          # must start 07 or 01
+    "1234567",             # not a Kenyan number
+    "0712 abc 678",        # letters
+    "+255712345678",       # Tanzania code, not Kenya
+    "254+712345678",       # + in the wrong place
+])
+def test_invalid_phone_is_rejected(client, partner_payload, phone):
+    partner_payload["phone"] = phone
+
+    res = client.post(REGISTER, json=partner_payload)
+
+    assert res.status_code == 400
+    assert "phone" in res.get_json()["fields"]
+    assert IndustryPartner.query.count() == 0   # nothing saved
 
 
 def test_failed_profile_insert_rolls_back_user_row(client, student_payload, monkeypatch):
@@ -175,6 +245,43 @@ def test_login_with_unknown_email_returns_same_generic_401(client):
 
     assert res.status_code == 401
     assert res.get_json()["error"] == "Invalid email or password"
+
+
+# --- Default admin: username login ------------------------------------------------
+# `seeded` runs flask seed-data's logic, which creates the admin (username "Admin").
+
+@pytest.mark.parametrize("username", ["Admin", "admin", "ADMIN", "  Admin  "])
+def test_default_admin_logs_in_with_username(app, client, seeded, username):
+    res = login(client, username, "Admin")
+
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["user"]["role"] == "system_admin"
+    assert decode_token(body["access_token"])["role"] == "system_admin"
+
+
+def test_default_admin_wrong_password_returns_401(client, seeded):
+    res = login(client, "Admin", "wrong-password1")
+    assert res.status_code == 401
+    assert res.get_json()["error"] == "Invalid email or password"
+
+
+def test_default_admin_can_also_log_in_with_email(client, seeded):
+    assert login(client, "admin@wbl.local", "Admin").status_code == 200
+
+
+def test_students_cannot_log_in_by_name(client, seeded, student_payload):
+    # Username login is only for system admins; a student's name is not a username.
+    client.post(REGISTER, json=student_payload)
+    assert login(client, "Jane Doe", student_payload["password"]).status_code == 401
+    assert login(client, "Jane", student_payload["password"]).status_code == 401
+
+
+def test_reseeding_does_not_duplicate_the_admin(seeded):
+    from app.models import SystemAdmin
+    from app.seed.seeder import seed_all
+    seed_all()
+    assert SystemAdmin.query.count() == 1
 
 
 # --- /me --------------------------------------------------------------------------
