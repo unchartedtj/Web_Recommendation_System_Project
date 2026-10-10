@@ -18,6 +18,10 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)   # load settings (database URI, JWT secret, ...)
 
+    # Fail fast at startup if the match weights are wrong (e.g. they don't add up to 1).
+    from services.recommendation_engine import validate_weights
+    app.config["MATCH_WEIGHTS"] = validate_weights(app.config["MATCH_WEIGHTS"])
+
     # Connect each extension to this app.
     db.init_app(app)
     migrate.init_app(app, db)
@@ -34,11 +38,15 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     from app.errors import register_error_handlers
     from app.opportunities import opportunities_bp
     from app.recommendations import recommendations_bp
+    from app.students import students_bp
+    from app.admin import admin_bp
 
     # A "blueprint" is a group of related routes. Registering it switches those routes on.
     app.register_blueprint(auth_bp)               # /api/auth/...
-    app.register_blueprint(opportunities_bp)      # /api/units, /api/opportunities, /api/partner/...
-    app.register_blueprint(recommendations_bp)    # /api/grades, /api/recommendations, /api/admin/...
+    app.register_blueprint(opportunities_bp)      # /api/units, /skills, /sectors, /opportunities, /partner/...
+    app.register_blueprint(recommendations_bp)    # /api/recommendations, /api/admin/model/retrain
+    app.register_blueprint(students_bp)           # /api/student/profile
+    app.register_blueprint(admin_bp)              # /api/admin/skills, /api/admin/sectors
     register_error_handlers(app)                  # turn every error into {"error", "fields"} JSON
     register_cli(app)                             # `flask create-admin`, `flask seed-data`
 
