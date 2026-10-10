@@ -9,9 +9,11 @@ from datetime import date
 
 from app.models import RequirementImportance
 
-MIN_REQUIREMENTS, MAX_REQUIREMENTS = 2, 5
+MIN_REQUIREMENTS, MAX_REQUIREMENTS = 2, 5     # unit requirements per opportunity
+MIN_SKILLS, MAX_SKILLS = 1, 8                 # required skills per opportunity
 # Required text fields and their maximum lengths (matching the database columns).
-TEXT_FIELDS = {"title": 200, "description": 5000, "sector": 100, "location": 150}
+# (The sector is no longer text: it's chosen from the preset list as sector_id.)
+TEXT_FIELDS = {"title": 200, "description": 5000, "location": 150}
 
 
 def _to_int(value):
@@ -36,8 +38,13 @@ def _to_number(value):
         return None
 
 
-def validate_opportunity(data: dict, active_unit_ids: set[int]) -> tuple[dict, dict]:
-    """Check the whole opportunity form. Collects ALL errors, not just the first one."""
+def validate_opportunity(data: dict, active_unit_ids: set[int], active_skill_ids: set[int],
+                         active_sector_ids: set[int]) -> tuple[dict, dict]:
+    """Check the whole opportunity form. Collects ALL errors, not just the first one.
+
+    The active_* sets are the ids partners may choose from (loaded from the database
+    by the route), so this function itself never touches the database.
+    """
     errors: dict[str, str] = {}
     cleaned: dict = {}
 
@@ -70,9 +77,52 @@ def validate_opportunity(data: dict, active_unit_ids: set[int]) -> tuple[dict, d
     except ValueError:
         errors["application_deadline"] = "Enter a valid date (YYYY-MM-DD)"
 
+    # Sector: required, and must be one of the active preset sectors.
+    sector_id = _to_int(data.get("sector_id"))
+    if sector_id is None:
+        errors["sector_id"] = "Choose a sector"
+    elif sector_id not in active_sector_ids:
+        errors["sector_id"] = "Unknown or inactive sector"
+    cleaned["sector_id"] = sector_id
+
     cleaned["requirements"] = _validate_requirements(data.get("requirements"),
                                                      active_unit_ids, errors)
+    cleaned["skills"] = _validate_skills(data.get("skills"), active_skill_ids, errors)
     return cleaned, errors
+
+
+def _validate_skills(raw, active_skill_ids: set[int], errors: dict) -> list[dict]:
+    """Check the required-skills list: 1 to 8 skills, at least one essential, no duplicates,
+    all active. Per-row errors use keys like "skills.2.skill_id"."""
+    if not isinstance(raw, list) or not raw:
+        errors["skills"] = f"Add between {MIN_SKILLS} and {MAX_SKILLS} required skills"
+        return []
+    if len(raw) > MAX_SKILLS:
+        errors["skills"] = f"An opportunity can require at most {MAX_SKILLS} skills"
+
+    cleaned, seen = [], set()
+    for i, row in enumerate(raw):
+        prefix = f"skills.{i}"
+        row = row if isinstance(row, dict) else {}
+
+        skill_id = _to_int(row.get("skill_id"))
+        if skill_id is None:
+            errors[f"{prefix}.skill_id"] = "Choose a skill"
+        elif skill_id not in active_skill_ids:
+            errors[f"{prefix}.skill_id"] = "Unknown or inactive skill"
+        elif skill_id in seen:
+            errors[f"{prefix}.skill_id"] = "This skill is already listed"
+        seen.add(skill_id)
+
+        importance = row.get("importance") or RequirementImportance.ESSENTIAL
+        if importance not in RequirementImportance.ALL:
+            errors[f"{prefix}.importance"] = "Importance must be 'essential' or 'desirable'"
+        cleaned.append({"skill_id": skill_id, "importance": importance})
+
+    if not any(s["importance"] == RequirementImportance.ESSENTIAL for s in cleaned) \
+            and "skills" not in errors:
+        errors["skills"] = "At least one required skill must be essential"
+    return cleaned
 
 
 def _validate_requirements(raw, active_unit_ids: set[int], errors: dict) -> list[dict]:
