@@ -31,6 +31,21 @@ function RequirementChips({ requirements }) {
   );
 }
 
+/** Required skills as chips, e.g. "Java★ Git & GitHub★ Python". ★ = essential. */
+function SkillChips({ skills }) {
+  return (
+    <div className="chips">
+      {skills.map((s) => (
+        <span key={s.skill_id}
+          className={`chip chip--skill ${s.importance === 'essential' ? 'chip--essential' : ''}`}
+          title={`${s.name} (${s.importance})`}>
+          {s.name}{s.importance === 'essential' && '★'}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function MyOpportunities() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -88,6 +103,7 @@ export default function MyOpportunities() {
                 <th>Deadline</th>
                 <th>Slots</th>
                 <th>Requirements</th>
+                <th>Skills</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -107,6 +123,7 @@ export default function MyOpportunities() {
                   <td data-label="Deadline">{o.application_deadline ?? '—'}</td>
                   <td data-label="Slots">{o.slots}</td>
                   <td data-label="Requirements"><RequirementChips requirements={o.requirements} /></td>
+                  <td data-label="Skills"><SkillChips skills={o.skills ?? []} /></td>
                   <td className="actions">
                     <Link className="btn btn--secondary btn--sm" to={`/partner/opportunities/${o.opportunity_id}/edit`}>
                       Edit
