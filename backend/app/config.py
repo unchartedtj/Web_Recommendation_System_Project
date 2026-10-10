@@ -53,6 +53,10 @@ class Config:
     # The website address allowed to call this API from a browser (CORS).
     FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
+    # How the final match score combines the three parts. Must add up to 1
+    # (checked when the app starts). match = 0.60·grades + 0.25·skills + 0.15·interests
+    MATCH_WEIGHTS = {"grades": 0.60, "skills": 0.25, "interests": 0.15}
+
     # Where the fitted recommendation model is saved (backend/ml_models/engine.joblib).
     ML_MODEL_PATH = os.getenv(
         "ML_MODEL_PATH",
