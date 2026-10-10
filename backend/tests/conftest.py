@@ -81,12 +81,56 @@ def engine(app):
 
 @pytest.fixture
 def seeded(app):
-    """Seed the catalogue (12 units, 2 demo partners, 5 opportunities).
-    Returns {unit_name: unit_id} so tests can look up ids by name."""
+    """Seed the catalogue (12 units, skills, sectors, 2 demo partners, 5 opportunities, admin),
+    WITHOUT the demo students. Returns {unit_name: unit_id} so tests can look up ids by name."""
+    from app.models import AcademicUnit
+    from app.seed.seeder import seed_all
+    seed_all(include_demo_students=False)
+    return {u.unit_name: u.unit_id for u in AcademicUnit.query.all()}
+
+
+@pytest.fixture
+def seeded_with_students(app):
+    """Everything `flask seed-data` creates, INCLUDING the 3 demo students."""
     from app.models import AcademicUnit
     from app.seed.seeder import seed_all
     seed_all()
     return {u.unit_name: u.unit_id for u in AcademicUnit.query.all()}
+
+
+@pytest.fixture
+def skill_ids(seeded):
+    """{skill name: skill_id} for the 21 seeded skills."""
+    from app.models import Skill
+    return {s.name: s.skill_id for s in Skill.query.all()}
+
+
+@pytest.fixture
+def sector_ids(seeded):
+    """{sector name: sector_id} for the 7 seeded sectors."""
+    from app.models import Sector
+    return {s.name: s.sector_id for s in Sector.query.all()}
+
+
+@pytest.fixture
+def profile_body(seeded, skill_ids, sector_ids):
+    """Returns a FUNCTION that builds a valid PUT /api/student/profile body.
+
+    profile_body()                                   → varied marks around 60, 2 skills, 1 interest
+    profile_body(55, {"Computer Networks": 90}, skills=["Java"], interests=["Software Development"])
+    The base marks differ slightly per unit on purpose: 12 IDENTICAL marks would trigger
+    the "implausible entry" 409 check.
+    """
+    def make(default=60, overrides=None, skills=("Python", "SQL"),
+             interests=("Data Analytics & AI",), **extra):
+        grades = {str(uid): default + (i % 3) for i, uid in enumerate(sorted(seeded.values()))}
+        for name, mark in (overrides or {}).items():
+            grades[str(seeded[name])] = mark
+        return {"grades": grades,
+                "skill_ids": [skill_ids[s] for s in skills],
+                "sector_ids": [sector_ids[s] for s in interests],
+                **extra}
+    return make
 
 
 # ---- Plain helper functions (not fixtures) ------------------------------------------------
