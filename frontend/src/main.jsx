@@ -17,7 +17,8 @@ import './styles/global.css';   // importing a CSS file applies it to the whole 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    {/* future flags: opt in to React Router v7 behaviour now (silences upgrade warnings). */}
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <App />
       </AuthProvider>
