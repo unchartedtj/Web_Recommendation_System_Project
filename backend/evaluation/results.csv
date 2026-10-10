@@ -1,58 +1,61 @@
-student,group,expected,rank1,rank2,rank3,score1,score2,score3,rank1_eligible,top1_hit,top3_hit,both_in_top2,mark: Object Oriented Programming,mark: Data Structures and Algorithms,mark: Software Engineering,mark: Database Systems,mark: Web Application Development,mark: Mobile Application Development,mark: Probability and Statistics I,mark: Artificial Intelligence,mark: Computer Networks,mark: Operating Systems,mark: Business Systems Analysis,mark: IT Project Management
-S-SWE-1,standard,SWE,SWE,BA,WEB,0.6317,0.5005,0.375,True,True,True,,95,78,40,63,48,47,47,44,63,43,61,63
-S-SWE-2,standard,SWE,SWE,BA,NET,0.6787,0.4571,0.3869,True,True,True,,92,77,58,53,41,40,42,46,47,56,59,40
-S-SWE-3,standard,SWE,SWE,BA,WEB,0.6258,0.4632,0.4342,True,True,True,,92,81,62,60,62,57,53,47,54,58,48,65
-S-SWE-4,standard,SWE,SWE,NET,BA,0.6112,0.4861,0.4254,True,True,True,,75,80,62,53,50,48,44,46,70,64,50,43
-S-SWE-5,standard,SWE,SWE,BA,WEB,0.5939,0.4634,0.437,True,True,True,,77,87,43,51,67,51,59,48,65,41,63,54
-S-SWE-6,standard,SWE,SWE,BA,NET,0.6048,0.5182,0.3889,True,True,True,,92,78,69,52,42,57,49,66,60,59,68,67
-S-WEB-1,standard,WEB,WEB,BA,DATA,0.5782,0.4602,0.4339,True,True,True,,51,58,46,62,77,76,61,47,64,49,42,67
-S-WEB-2,standard,WEB,WEB,BA,DATA,0.6188,0.4144,0.437,True,True,True,,47,67,43,52,83,89,60,66,51,45,51,51
-S-WEB-3,standard,WEB,WEB,BA,DATA,0.6201,0.4485,0.4345,True,True,True,,46,61,48,62,95,77,59,60,45,57,63,47
-S-WEB-4,standard,WEB,WEB,BA,NET,0.6331,0.4802,0.3816,True,True,True,,45,54,52,48,95,92,47,61,50,66,64,64
-S-WEB-5,standard,WEB,WEB,BA,NET,0.6121,0.5165,0.3993,True,True,True,,41,47,66,41,85,87,48,42,46,69,70,58
-S-WEB-6,standard,WEB,WEB,SWE,NET,0.6089,0.4507,0.4133,True,True,True,,68,62,50,46,95,90,52,68,69,60,54,44
-S-DATA-1,standard,DATA,DATA,BA,NET,0.6185,0.4618,0.4467,True,True,True,,48,44,47,92,57,48,93,53,68,58,52,51
-S-DATA-2,standard,DATA,DATA,BA,WEB,0.6116,0.5057,0.4618,True,True,True,,47,44,56,90,42,64,76,67,43,44,60,45
-S-DATA-3,standard,DATA,DATA,SWE,BA,0.6023,0.4819,0.4701,True,True,True,,65,61,53,94,42,52,87,59,54,56,48,57
-S-DATA-4,standard,DATA,DATA,SWE,WEB,0.5653,0.4727,0.4671,True,True,True,,67,70,40,78,61,68,92,64,48,64,60,50
-S-DATA-5,standard,DATA,DATA,BA,NET,0.5819,0.5484,0.398,True,True,True,,43,49,53,80,54,40,83,56,64,45,56,69
-S-DATA-6,standard,DATA,DATA,BA,WEB,0.59,0.4943,0.4845,True,True,True,,43,67,60,84,66,60,91,59,46,44,51,64
-S-NET-1,standard,NET,NET,DATA,BA,0.5951,0.4246,0.4119,True,True,True,,45,57,70,64,69,56,69,40,94,85,55,40
-S-NET-2,standard,NET,NET,BA,WEB,0.5323,0.4986,0.4794,True,True,True,,43,69,51,68,66,65,49,47,76,82,68,58
-S-NET-3,standard,NET,NET,BA,WEB,0.5818,0.4236,0.4474,True,True,True,,70,42,42,63,55,66,42,64,92,79,44,61
-S-NET-4,standard,NET,NET,BA,SWE,0.5531,0.4746,0.4518,True,True,True,,55,70,57,45,48,56,67,59,88,81,69,57
-S-NET-5,standard,NET,NET,BA,SWE,0.5833,0.4608,0.4561,True,True,True,,64,63,62,46,62,49,52,61,95,86,54,68
-S-NET-6,standard,NET,NET,BA,SWE,0.6624,0.4349,0.4269,True,True,True,,56,54,43,47,47,42,50,40,93,92,47,58
-S-BA-1,standard,BA,BA,WEB,NET,0.6681,0.4203,0.4097,True,True,True,,47,40,42,62,60,41,47,42,68,41,85,77
-S-BA-2,standard,BA,BA,NET,DATA,0.6739,0.4406,0.3853,True,True,True,,56,47,48,61,55,46,57,44,63,69,93,93
-S-BA-3,standard,BA,BA,WEB,SWE,0.679,0.4426,0.4133,True,True,True,,55,47,65,55,65,53,46,43,43,61,88,86
-S-BA-4,standard,BA,BA,DATA,SWE,0.6382,0.4571,0.4135,True,True,True,,53,53,54,67,63,41,61,60,60,43,76,87
-S-BA-5,standard,BA,BA,SWE,NET,0.6763,0.458,0.3941,True,True,True,,63,50,65,67,43,47,46,46,57,54,79,88
-S-BA-6,standard,BA,BA,WEB,NET,0.6233,0.4785,0.4429,True,True,True,,45,48,54,47,67,69,42,54,65,67,92,78
-B-SWE+WEB,borderline,SWE+WEB,SWE,WEB,DATA,0.5718,0.5092,0.4446,True,True,True,True,76,95,57,66,75,77,69,64,67,47,45,53
-B-WEB+DATA,borderline,WEB+DATA,WEB,DATA,BA,0.5621,0.5215,0.5199,True,True,True,True,55,55,46,87,76,80,87,40,52,48,69,65
-B-DATA+BA,borderline,DATA+BA,BA,DATA,WEB,0.5647,0.541,0.4545,True,True,True,True,65,54,49,88,62,70,92,61,62,55,79,81
-B-NET+SWE,borderline,NET+SWE,SWE,NET,BA,0.5836,0.5203,0.3969,True,True,True,True,84,81,70,41,58,63,57,41,85,76,41,58
-B-BA+SWE,borderline,BA+SWE,SWE,BA,DATA,0.6159,0.574,0.3622,True,True,True,True,90,91,69,67,56,45,41,70,56,42,80,77
-
-SUMMARY,top1_accuracy,top3_accuracy
-Standard (n=30),1.0000,1.0000
-Borderline (n=5),1.0000,1.0000
-All (n=35),1.0000,1.0000
-borderline_both_in_top2,5/5
-
-IDF,unit_name,required_by,idf
-,Artificial Intelligence,1,2.098612
-,Business Systems Analysis,1,2.098612
-,Computer Networks,1,2.098612
-,Data Structures and Algorithms,1,2.098612
-,IT Project Management,1,2.098612
-,Mobile Application Development,1,2.098612
-,Object Oriented Programming,1,2.098612
-,Operating Systems,1,2.098612
-,Probability and Statistics I,1,2.098612
-,Web Application Development,1,2.098612
-,Software Engineering,2,1.693147
-,Database Systems,3,1.405465
-
-config,seed=42,"high=(75, 95)","low=(40, 70)",fitted_at=2026-09-30T16:26:09+00:00
+student,group,expected,grade_side,interest_side,skills,interests,grades_only_rank1,grades_only_rank2,grades_only_rank3,grades_only_top1_hit,grades_only_top3_hit,grades_skills_rank1,grades_skills_rank2,grades_skills_rank3,grades_skills_top1_hit,grades_skills_top3_hit,all_three_rank1,all_three_rank2,all_three_rank3,all_three_top1_hit,all_three_top3_hit,mark: Object Oriented Programming,mark: Data Structures and Algorithms,mark: Software Engineering,mark: Database Systems,mark: Web Application Development,mark: Mobile Application Development,mark: Probability and Statistics I,mark: Artificial Intelligence,mark: Computer Networks,mark: Operating Systems,mark: Business Systems Analysis,mark: IT Project Management
+A-SWE-1,aligned,SWE,,,Java; Git & GitHub,Software Development,SWE,NET,BA,True,True,SWE,NET,BA,True,True,SWE,NET,BA,True,True,83,82,47,44,63,43,61,63,68,57,42,58
+A-SWE-2,aligned,SWE,,,Java; Git & GitHub; Python,Software Development,SWE,BA,NET,True,True,SWE,BA,NET,True,True,SWE,BA,NET,True,True,77,81,47,56,59,40,57,46,62,60,62,57
+A-SWE-3,aligned,SWE,,,Java; Git & GitHub; Python,Software Development; Business Analysis & IT Consulting,SWE,BA,WEB,True,True,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,83,75,64,65,45,62,53,50,48,44,46,70
+A-SWE-4,aligned,SWE,,,Java; Git & GitHub; Python,Software Development,SWE,BA,WEB,True,True,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,87,78,51,67,51,59,48,65,41,63,54,57
+A-SWE-5,aligned,SWE,,,Java; Git & GitHub,Software Development; Web & Mobile Development,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,92,84,66,60,59,68,67,51,58,46,62,42
+A-SWE-6,aligned,SWE,,,Java; Git & GitHub,Software Development,SWE,BA,WEB,True,True,SWE,BA,WEB,True,True,SWE,BA,WEB,True,True,84,77,67,47,67,43,52,48,54,60,66,51
+A-WEB-1,aligned,WEB,,,JavaScript; React; HTML & CSS,Web & Mobile Development; Networking & Cybersecurity,WEB,BA,DATA,True,True,WEB,BA,DATA,True,True,WEB,BA,NET,True,True,46,61,48,62,95,77,59,60,45,57,63,47
+A-WEB-2,aligned,WEB,,,JavaScript; React; HTML & CSS,Web & Mobile Development; IT Support & Infrastructure,WEB,NET,BA,True,True,WEB,NET,BA,True,True,WEB,NET,BA,True,True,48,69,60,62,92,82,61,50,66,64,64,41
+A-WEB-3,aligned,WEB,,,JavaScript; React; HTML & CSS,Web & Mobile Development,WEB,BA,NET,True,True,WEB,BA,NET,True,True,WEB,BA,NET,True,True,65,50,52,48,77,81,69,70,58,68,62,50
+A-WEB-4,aligned,WEB,,,JavaScript; React; HTML & CSS,Web & Mobile Development; IT Support & Infrastructure,WEB,SWE,BA,True,True,WEB,SWE,BA,True,True,WEB,SWE,BA,True,True,68,69,60,54,79,83,44,47,63,57,57,48
+A-WEB-5,aligned,WEB,,,JavaScript; React; HTML & CSS; Kotlin / Flutter,Web & Mobile Development; Data Analytics & AI,WEB,BA,SWE,True,True,WEB,BA,SWE,True,True,WEB,BA,DATA,True,True,44,56,55,42,76,78,44,60,45,65,61,53
+A-WEB-6,aligned,WEB,,,JavaScript; React; HTML & CSS,Web & Mobile Development; IT Support & Infrastructure,WEB,BA,SWE,True,True,WEB,BA,SWE,True,True,WEB,BA,SWE,True,True,59,54,56,48,92,75,61,63,43,61,68,57
+A-DATA-1,aligned,DATA,,,Python; SQL; Machine Learning,Data Analytics & AI,DATA,BA,WEB,True,True,DATA,BA,SWE,True,True,DATA,BA,SWE,True,True,49,53,45,89,40,70,83,56,64,45,56,69
+A-DATA-2,aligned,DATA,,,Python; SQL,Data Analytics & AI; UI/UX & Digital Media,DATA,BA,NET,True,True,DATA,BA,NET,True,True,DATA,BA,NET,True,True,56,59,46,79,51,64,80,57,70,64,69,56
+A-DATA-3,aligned,DATA,,,Python; SQL,Data Analytics & AI; IT Support & Infrastructure,DATA,BA,WEB,True,True,DATA,BA,WEB,True,True,DATA,BA,WEB,True,True,40,43,69,86,68,66,84,47,41,47,68,58
+A-DATA-4,aligned,DATA,,,Python; SQL,Data Analytics & AI,BA,DATA,SWE,False,True,DATA,SWE,BA,True,True,DATA,SWE,BA,True,True,63,55,66,77,64,57,79,44,61,55,70,57
+A-DATA-5,aligned,DATA,,,Python; SQL,Data Analytics & AI; Business Analysis & IT Consulting,DATA,BA,SWE,True,True,DATA,SWE,BA,True,True,DATA,BA,SWE,True,True,67,59,53,81,69,57,81,62,49,52,61,60
+A-DATA-6,aligned,DATA,,,Python; SQL; Machine Learning,Data Analytics & AI; Software Development,DATA,BA,WEB,True,True,DATA,BA,SWE,True,True,DATA,BA,SWE,True,True,47,47,42,85,40,58,92,47,58,47,40,42
+A-NET-1,aligned,NET,,,Networking (Cisco); Linux Administration,Networking & Cybersecurity,NET,BA,DATA,True,True,NET,BA,DATA,True,True,NET,BA,DATA,True,True,42,68,41,67,50,42,56,47,83,90,46,57
+A-NET-2,aligned,NET,,,Networking (Cisco); Linux Administration,Networking & Cybersecurity; Web & Mobile Development,NET,SWE,BA,True,True,NET,SWE,BA,True,True,NET,SWE,BA,True,True,65,55,65,53,46,43,43,61,88,86,53,53
+A-NET-3,aligned,NET,,,Networking (Cisco); Linux Administration; Cybersecurity Fundamentals,Networking & Cybersecurity,NET,WEB,BA,True,True,NET,WEB,BA,True,True,NET,WEB,BA,True,True,41,52,63,50,65,67,43,47,81,81,57,54
+A-NET-4,aligned,NET,,,Networking (Cisco); Linux Administration,Networking & Cybersecurity; Web & Mobile Development,NET,BA,DATA,True,True,NET,BA,DATA,True,True,NET,BA,WEB,True,True,48,54,47,67,69,42,54,65,92,78,41,60
+A-NET-5,aligned,NET,,,Networking (Cisco); Linux Administration,Networking & Cybersecurity,NET,SWE,BA,True,True,NET,SWE,BA,True,True,NET,SWE,BA,True,True,69,64,67,47,45,53,55,55,81,87,68,41
+A-NET-6,aligned,NET,,,Networking (Cisco); Linux Administration,Networking & Cybersecurity; Software Development,NET,BA,WEB,True,True,NET,BA,WEB,True,True,NET,BA,SWE,True,True,52,48,69,65,65,54,49,53,92,90,44,46
+A-BA-1,aligned,BA,,,Business Process Modelling; Project Management; SQL,Business Analysis & IT Consulting,BA,NET,SWE,True,True,BA,NET,SWE,True,True,BA,NET,SWE,True,True,58,63,57,41,63,50,41,41,58,55,91,91
+A-BA-2,aligned,BA,,,Business Process Modelling; Project Management,Business Analysis & IT Consulting,BA,SWE,NET,True,True,BA,SWE,NET,True,True,BA,SWE,NET,True,True,70,56,42,67,45,42,59,42,61,67,82,87
+A-BA-3,aligned,BA,,,Business Process Modelling; Project Management,Business Analysis & IT Consulting,BA,DATA,NET,True,True,BA,DATA,NET,True,True,BA,DATA,NET,True,True,58,59,41,59,42,53,61,58,58,56,85,83
+A-BA-4,aligned,BA,,,Business Process Modelling; Project Management,Business Analysis & IT Consulting; Web & Mobile Development,BA,NET,WEB,True,True,BA,NET,WEB,True,True,BA,NET,WEB,True,True,48,52,44,61,60,49,54,50,69,64,77,75
+A-BA-5,aligned,BA,,,Business Process Modelling; Project Management; SQL,Business Analysis & IT Consulting,BA,WEB,SWE,True,True,BA,DATA,SWE,True,True,BA,DATA,SWE,True,True,57,46,56,48,44,69,51,68,42,68,82,86
+A-BA-6,aligned,BA,,,Business Process Modelling; Project Management; SQL,Business Analysis & IT Consulting; IT Support & Infrastructure,BA,NET,WEB,True,True,BA,NET,SWE,True,True,BA,NET,SWE,True,True,62,49,59,65,60,56,40,61,66,57,84,78
+B-SWE+WEB-1,borderline,SWE+WEB,,,Java; JavaScript; HTML & CSS; React; Git & GitHub,Software Development; Web & Mobile Development,WEB,SWE,BA,True,True,WEB,SWE,BA,True,True,WEB,SWE,BA,True,True,79,83,43,68,78,92,44,48,49,59,46,62
+B-SWE+WEB-2,borderline,SWE+WEB,,,Java; JavaScript; HTML & CSS; React; Git & GitHub,Software Development; Web & Mobile Development,WEB,SWE,NET,True,True,WEB,SWE,NET,True,True,WEB,SWE,NET,True,True,85,81,61,60,83,91,55,48,68,69,67,41
+B-WEB+DATA-1,borderline,WEB+DATA,,,Python; JavaScript; HTML & CSS; React; SQL,Web & Mobile Development; Data Analytics & AI,DATA,WEB,BA,True,True,WEB,DATA,BA,True,True,WEB,DATA,BA,True,True,42,60,53,83,76,75,85,64,44,60,48,45
+B-WEB+DATA-2,borderline,WEB+DATA,,,Python; JavaScript; HTML & CSS; React; SQL,Web & Mobile Development; Data Analytics & AI,WEB,BA,DATA,True,True,WEB,DATA,BA,True,True,WEB,DATA,BA,True,True,63,54,57,88,92,75,78,42,70,68,62,68
+B-DATA+BA-1,borderline,DATA+BA,,,Python; SQL; Business Process Modelling; Project Management,Data Analytics & AI; Business Analysis & IT Consulting,BA,DATA,WEB,True,True,BA,DATA,SWE,True,True,BA,DATA,SWE,True,True,44,57,41,86,58,57,79,53,44,41,84,86
+B-DATA+BA-2,borderline,DATA+BA,,,Python; SQL; Business Process Modelling; Project Management,Data Analytics & AI; Business Analysis & IT Consulting,BA,DATA,SWE,True,True,BA,DATA,SWE,True,True,BA,DATA,SWE,True,True,68,69,65,76,68,51,81,61,47,61,78,86
+B-NET+SWE-1,borderline,NET+SWE,,,Java; Networking (Cisco); Linux Administration; Git & GitHub,Networking & Cybersecurity; Software Development,SWE,NET,BA,True,True,SWE,NET,BA,True,True,SWE,NET,BA,True,True,92,88,59,63,44,69,69,47,80,80,68,53
+B-NET+SWE-2,borderline,NET+SWE,,,Java; Networking (Cisco); Linux Administration; Git & GitHub,Networking & Cybersecurity; Software Development,SWE,NET,DATA,True,True,SWE,NET,DATA,True,True,SWE,NET,DATA,True,True,75,80,63,69,50,65,69,53,82,83,45,65
+B-BA+SWE-1,borderline,BA+SWE,,,Java; Git & GitHub; Business Process Modelling; Project Management,Business Analysis & IT Consulting; Software Development,BA,SWE,NET,True,True,BA,SWE,NET,True,True,BA,SWE,NET,True,True,78,87,67,41,67,55,47,46,66,69,89,86
+B-BA+SWE-2,borderline,BA+SWE,,,Java; Git & GitHub; Business Process Modelling; Project Management,Business Analysis & IT Consulting; Software Development,SWE,BA,NET,True,True,SWE,BA,NET,True,True,SWE,BA,NET,True,True,84,82,47,40,61,46,52,50,48,67,77,83
+N-SWE-1,noisy,SWE,,,Java; Git & GitHub; SQL; Python; Project Management,Software Development; Web & Mobile Development,SWE,BA,WEB,True,True,SWE,BA,DATA,True,True,SWE,BA,WEB,True,True,88,78,43,62,71,36,38,56,62,44,44,49
+N-SWE-2,noisy,SWE,,,Java; Git & GitHub; Kotlin / Flutter; Excel Data Analysis,Software Development; IT Support & Infrastructure,SWE,BA,WEB,True,True,SWE,WEB,BA,True,True,SWE,WEB,BA,True,True,83,83,54,47,68,61,45,52,59,47,62,64
+N-WEB-1,noisy,WEB,,,JavaScript; React; HTML & CSS; Kotlin / Flutter; PHP; Networking (Cisco),Web & Mobile Development; Networking & Cybersecurity,WEB,BA,DATA,True,True,WEB,BA,NET,True,True,WEB,BA,NET,True,True,47,53,75,71,100,100,58,44,60,41,55,47
+N-WEB-2,noisy,WEB,,,JavaScript; React; HTML & CSS; Kotlin / Flutter; SQL,Web & Mobile Development,WEB,BA,DATA,True,True,WEB,BA,DATA,True,True,WEB,BA,DATA,True,True,49,43,32,54,97,91,67,61,34,43,58,75
+N-DATA-1,noisy,DATA,,,Python; SQL; Power BI / Tableau; Technical Writing; UI/UX Design (Figma),Data Analytics & AI,DATA,NET,BA,True,True,DATA,BA,NET,True,True,DATA,BA,NET,True,True,54,80,61,97,55,43,96,42,84,76,56,53
+N-DATA-2,noisy,DATA,,,Python; SQL; Cloud (AWS / Azure),Data Analytics & AI; IT Support & Infrastructure,DATA,BA,WEB,True,True,DATA,BA,SWE,True,True,DATA,BA,SWE,True,True,35,71,41,87,41,59,86,68,62,34,37,43
+N-NET-1,noisy,NET,,,Networking (Cisco); Linux Administration; Machine Learning; Cloud (AWS / Azure),Networking & Cybersecurity,NET,BA,DATA,True,True,NET,DATA,BA,True,True,NET,DATA,BA,True,True,51,56,68,57,42,66,66,50,84,85,52,53
+N-NET-2,noisy,NET,,,Networking (Cisco); Linux Administration; Cybersecurity Fundamentals; React; UI/UX Design (Figma),Networking & Cybersecurity; Web & Mobile Development,NET,BA,SWE,True,True,NET,BA,WEB,True,True,NET,BA,WEB,True,True,62,42,59,42,37,64,58,64,90,86,51,41
+N-BA-1,noisy,BA,,,Business Process Modelling; Project Management; Java,Business Analysis & IT Consulting,BA,NET,SWE,True,True,BA,SWE,NET,True,True,BA,SWE,NET,True,True,41,63,37,46,39,58,52,50,83,48,75,93
+N-BA-2,noisy,BA,,,Business Process Modelling; Project Management; Machine Learning,Business Analysis & IT Consulting,BA,NET,SWE,True,True,BA,DATA,NET,True,True,BA,DATA,NET,True,True,45,73,33,68,40,37,48,59,76,51,100,69
+C-SWEvsDATA,conflicting,SWE,SWE,DATA,UI/UX Design (Figma); PHP,Data Analytics & AI,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,DATA,SWE,BA,False,True,78,93,40,69,49,58,61,69,70,52,52,70
+C-WEBvsBA,conflicting,WEB,WEB,BA,Cloud (AWS / Azure); Java,Business Analysis & IT Consulting,WEB,BA,SWE,True,True,WEB,BA,SWE,True,True,BA,WEB,SWE,False,True,42,58,62,66,95,82,43,62,64,49,67,61
+C-DATAvsNET,conflicting,DATA,DATA,NET,Kotlin / Flutter; Java,Networking & Cybersecurity,DATA,BA,SWE,True,True,SWE,DATA,BA,False,True,SWE,DATA,BA,False,True,65,58,65,76,51,57,88,61,51,42,56,60
+C-NETvsWEB,conflicting,NET,NET,WEB,Excel Data Analysis; PHP,Web & Mobile Development,NET,BA,DATA,True,True,NET,BA,DATA,True,True,NET,BA,DATA,True,True,67,53,66,55,43,53,70,51,95,89,62,44
+C-BAvsSWE,conflicting,BA,BA,SWE,Machine Learning; Cloud (AWS / Azure),Software Development,BA,DATA,SWE,True,True,BA,DATA,SWE,True,True,SWE,BA,DATA,False,True,63,56,70,60,48,59,65,69,57,64,90,89
+C-SWEvsNET,conflicting,SWE,SWE,NET,Technical Writing; Excel Data Analysis,Networking & Cybersecurity,SWE,DATA,BA,True,True,SWE,BA,DATA,True,True,SWE,BA,DATA,True,True,93,83,50,67,47,66,69,42,48,68,54,47
+C-WEBvsDATA,conflicting,WEB,WEB,DATA,Cybersecurity Fundamentals; Linux Administration,Data Analytics & AI,WEB,BA,SWE,True,True,WEB,BA,NET,True,True,WEB,BA,DATA,True,True,58,59,61,52,85,75,55,67,50,45,55,46
+C-DATAvsBA,conflicting,DATA,DATA,BA,JavaScript; React,Business Analysis & IT Consulting,DATA,BA,WEB,True,True,WEB,DATA,BA,False,True,WEB,BA,DATA,False,True,50,48,68,94,62,68,83,57,40,56,70,46
+C-NETvsSWE,conflicting,NET,NET,SWE,JavaScript; HTML & CSS,Software Development,NET,BA,DATA,True,True,NET,BA,DATA,True,True,NET,BA,DATA,True,True,63,53,55,57,64,47,62,55,95,90,54,65
+C-BAvsWEB,conflicting,BA,BA,WEB,Excel Data Analysis; Networking (Cisco),Web & Mobile Development,BA,DATA,SWE,True,True,BA,DATA,NET,True,True,BA,DATA,NET,True,True,49,47,52,62,47,49,61,58,51,55,92,91
