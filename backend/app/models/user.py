@@ -104,8 +104,14 @@ class Student(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     course = db.Column(db.String(150), nullable=False)
     year_of_study = db.Column(db.SmallInteger, nullable=False)
+    # When the student last saved their profile (grades + skills + interests). NULL = never.
+    profile_updated_at = db.Column(db.DateTime)
 
     user = db.relationship("User", back_populates="student")
+    # The student's chosen skills and career interests (see models/profile.py).
+    skills = db.relationship("StudentSkill", back_populates="student", cascade="all, delete-orphan")
+    interests = db.relationship("StudentInterest", back_populates="student",
+                                cascade="all, delete-orphan")
     grade_profiles = db.relationship("GradeProfile", back_populates="student",
                                      cascade="all, delete-orphan")
     recommendations = db.relationship("Recommendation", back_populates="student",
