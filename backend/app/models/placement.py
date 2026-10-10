@@ -46,7 +46,8 @@ class InternshipOpportunity(db.Model):
                            nullable=False, index=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)         # Text = long text, no fixed limit
-    sector = db.Column(db.String(100))
+    # The sector is chosen from the preset `sectors` list (it used to be free text).
+    sector_id = db.Column(db.Integer, db.ForeignKey("sectors.sector_id"), nullable=False, index=True)
     location = db.Column(db.String(150))
     # Nullable in the DB for safety; the API requires them for every new opportunity.
     duration_months = db.Column(db.Integer)
@@ -58,6 +59,10 @@ class InternshipOpportunity(db.Model):
     date_posted = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
     partner = db.relationship("IndustryPartner", back_populates="opportunities")
+    sector = db.relationship("Sector")                     # opportunity.sector.name → e.g. "Data Analytics & AI"
+    # Required skills (see models/profile.py). Same ownership rules as the unit requirements below.
+    skills = db.relationship("OpportunitySkill", back_populates="opportunity",
+                             cascade="all, delete-orphan")
     # cascade="all, delete-orphan": requirements belong to the opportunity. Removing one
     # from opportunity.precursors deletes the row, and deleting the opportunity deletes them all.
     precursors = db.relationship("OpportunityPrecursor", back_populates="opportunity",
@@ -128,6 +133,12 @@ class Recommendation(db.Model):
     avg_requirement_mark = db.Column(db.Numeric(5, 2))
     # JSON column: stores a Python list/dict directly (MariaDB keeps it as text).
     unmet_requirements = db.Column(db.JSON)  # [{unit, importance, required, your_mark}]
+    # Score breakdown: match_score = weighted sum of these three (weights in config MATCH_WEIGHTS).
+    grade_score = db.Column(db.Float)
+    skill_score = db.Column(db.Float)
+    interest_score = db.Column(db.Float)
+    interest_match = db.Column(db.Boolean)   # is the opportunity's sector one of the student's interests?
+    missing_skills = db.Column(db.JSON)      # {"essential": [names], "desirable": [names]}
     generated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
     student = db.relationship("Student", back_populates="recommendations")
