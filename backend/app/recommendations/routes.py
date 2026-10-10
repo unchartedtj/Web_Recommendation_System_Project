@@ -1,83 +1,69 @@
-"""Grade submission (temporary helper), recommendations, and model retraining.
+"""Recommendations and model retraining.
 
 Endpoints in this file (all under /api):
-    POST /grades                       student: submit marks {unit_id: mark}
     POST /recommendations/generate     student: run the engine and save the results
-    GET  /recommendations              student: read the saved results
-    POST /admin/model/retrain          system admin: refit the model, see IDF weights
+    GET  /recommendations              student: the saved results (refreshed if out of date)
+    POST /admin/model/retrain          system admin: refit the models, see the IDF weights
+
+(Students enter grades, skills and interests through PUT /api/student/profile,
+which also generates recommendations. The old temporary POST /api/grades was removed.)
 """
-from flask import jsonify, request
+from flask import jsonify
 
 from app.auth.decorators import current_student, role_required
 from app.errors import ApiError
-from app.extensions import db
-from app.models import AcademicUnit, Grade, GradeProfile, Recommendation
+from app.models import AcademicUnit, Recommendation, Skill
 from app.recommendations import recommendations_bp
+from app.recommendations.services import (latest_marks, match_details, profile_is_complete,
+                                          student_skill_ids)
 from services.recommendation_engine import IncompleteGradesError, get_engine
 
 STUDENT, ADMIN = "student", "system_admin"
 
 
-@recommendations_bp.post("/grades")
-@role_required(STUDENT)
-def submit_grades():
-    """TEMPORARY helper until the grade input UI exists.
+def serialize_recommendation(r: Recommendation) -> dict:
+    """One saved result. Opportunity details are current; the scores are the snapshot
+    taken when the results were generated."""
+    missing = r.missing_skills or {}
+    o = r.opportunity
+    return {
+        "rank": r.rank,
+        "opportunity_id": r.opportunity_id,
+        "title": o.title,
+        "organization": o.partner.organization_name,
+        "sector_id": o.sector_id,
+        "sector": o.sector.name if o.sector else None,
+        "location": o.location,
+        "duration_months": o.duration_months,
+        "slots": o.slots,
+        "application_deadline": o.application_deadline.isoformat() if o.application_deadline else None,
+        "status": o.status,  # may have closed since generation
+        "match_score": r.match_score,
+        "match_percent": round(r.match_score * 100, 2),
+        "breakdown": {
+            "grade_score": r.grade_score,
+            "skill_score": r.skill_score,
+            "interest_score": r.interest_score,
+        },
+        "avg_requirement_mark": (None if r.avg_requirement_mark is None
+                                 else float(r.avg_requirement_mark)),
+        "meets_requirements": r.meets_requirements,
+        "unmet_requirements": r.unmet_requirements or [],
+        "missing_essential_skills": missing.get("essential", []),
+        "missing_desirable_skills": missing.get("desirable", []),
+        "interest_match": r.interest_match,
+    }
 
-    Body: {"<unit_id>": mark, ...}. Creates a NEW grade profile each time. The engine
-    always uses the latest one, so earlier submissions are kept as history.
-    Example body: {"1": 78, "2": 64.5, "3": 90, ...}
-    """
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict) or not data:
-        raise ApiError("Body must be a JSON object of {unit_id: mark}", 400)
 
-    active = {u.unit_id for u in AcademicUnit.query.filter_by(is_active=True)}
-    errors, marks = {}, {}
-    # Check each (unit id, mark) pair. `continue` skips to the next pair once one
-    # problem is found, so each unit gets at most one error message.
-    for key, value in data.items():
-        try:
-            unit_id = int(key)            # JSON keys are always text, e.g. "5" → 5
-        except (TypeError, ValueError):
-            errors[str(key)] = "Unit id must be a number"
-            continue
-        if unit_id not in active:
-            errors[str(key)] = "Unknown or inactive unit"
-            continue
-        try:
-            if isinstance(value, bool):   # true/false are not marks
-                raise ValueError
-            mark = float(value)
-        except (TypeError, ValueError):
-            errors[str(key)] = "Mark must be a number"
-            continue
-        if not 0 <= mark <= 100:
-            errors[str(key)] = "Mark must be between 0 and 100"
-            continue
-        marks[unit_id] = round(mark, 2)   # the DB column holds 2 decimal places
-    if errors:
-        raise ApiError("Validation failed", 400, errors)
-
-    student = current_student()
-    try:
-        # One transaction: the profile row plus one Grade row per unit.
-        profile = GradeProfile(student_id=student.student_id)
-        db.session.add(profile)
-        db.session.flush()                # get profile.profile_id for the grade rows
-        for unit_id, mark in marks.items():
-            db.session.add(Grade(profile_id=profile.profile_id, unit_id=unit_id, grade_value=mark))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
-    return jsonify({"message": "Grades saved", "profile_id": profile.profile_id,
-                    "units_graded": len(marks)}), 201
+def _saved_rows(student_id: int) -> list[Recommendation]:
+    return (Recommendation.query.filter_by(student_id=student_id)
+            .order_by(Recommendation.rank).all())
 
 
 @recommendations_bp.post("/recommendations/generate")
 @role_required(STUDENT)
 def generate():
-    """Run the recommendation engine for the logged-in student."""
+    """Run the recommendation engine for the logged-in student (from their saved profile)."""
     student = current_student()
     try:
         results = get_engine().generate_recommendations(student.student_id)
@@ -91,47 +77,74 @@ def generate():
 @recommendations_bp.get("/recommendations")
 @role_required(STUDENT)
 def saved_recommendations():
-    """The results saved by the last generate call (best match first)."""
-    rows = (Recommendation.query.filter_by(student_id=current_student().student_id)
-            .order_by(Recommendation.rank).all())
+    """The student's results, split into two lists, each sorted by match score (best first):
+        eligible      – the student meets every ESSENTIAL minimum mark
+        not_eligible  – below at least one essential minimum ("Below minimum requirements")
+    Each item also has units[] and skills[] for the "Why this match?" section.
+
+    Regenerated automatically if they're older than the student's profile or older than
+    the model (e.g. a partner posted or changed an opportunity since).
+    """
+    student = current_student()
+    engine = get_engine()
+    rows = _saved_rows(student.student_id)
+    saved_at = rows[0].generated_at if rows else None
+
+    engine.ensure_fresh()                                     # refit first if the model is stale
+    outdated = student.profile_updated_at is not None and (
+        saved_at is None
+        or saved_at < student.profile_updated_at              # profile changed since
+        # Model changed. "<=" because both times are stored to the whole second: a refit in
+        # the same second as the saved results must still count as newer.
+        or (engine.fitted_at() is not None and saved_at <= engine.fitted_at()))
+    profile_complete = True
+    if outdated:
+        try:
+            engine.generate_recommendations(student.student_id)
+            rows = _saved_rows(student.student_id)
+        except IncompleteGradesError:
+            profile_complete = False                          # keep whatever was saved before
+    marks = latest_marks(student.student_id)
+    if not profile_is_complete(student, marks):
+        profile_complete = False                              # never saved / incomplete profile
+
+    # Add the "Why this match?" comparison (the student's marks and skills vs requirements).
+    skill_ids = student_skill_ids(student)
+    items = []
+    for r in rows:
+        item = serialize_recommendation(r)
+        item.update(match_details(r.opportunity, marks, skill_ids))
+        items.append(item)
+    # Best score first within each list (rank breaks exact ties the engine's way).
+    by_score = lambda i: (-i["match_score"], i["rank"])     # noqa: E731
+
     return jsonify({
         # All rows from one run share the same timestamp; None if never generated.
         "generated_at": rows[0].generated_at.isoformat() + "Z" if rows else None,
-        "recommendations": [{
-            "rank": r.rank,
-            "opportunity_id": r.opportunity_id,
-            # These come from the linked opportunity (via the relationship), so they're current.
-            "title": r.opportunity.title,
-            "organization": r.opportunity.partner.organization_name,
-            "sector": r.opportunity.sector,
-            "status": r.opportunity.status,  # may have closed since generation
-            # These are the snapshot stored at generation time.
-            "match_score": r.match_score,
-            "match_percent": round(r.match_score * 100, 2),
-            "avg_requirement_mark": (None if r.avg_requirement_mark is None
-                                     else float(r.avg_requirement_mark)),
-            "meets_requirements": r.meets_requirements,
-            "unmet_requirements": r.unmet_requirements or [],
-        } for r in rows],
+        "profile_updated_at": (student.profile_updated_at.isoformat() + "Z"
+                               if student.profile_updated_at else None),
+        "profile_complete": profile_complete,
+        "eligible": sorted([i for i in items if i["meets_requirements"]], key=by_score),
+        "not_eligible": sorted([i for i in items if not i["meets_requirements"]], key=by_score),
     })
 
 
 @recommendations_bp.post("/admin/model/retrain")
 @role_required(ADMIN)
 def retrain():
-    """Admin: refit the model now and show the learnt IDF weight of each unit."""
+    """Admin: refit both models now and show the learnt IDF weight of each unit and skill."""
     model = get_engine().update_model()
-    # Look up unit names for the ids in the vocabulary.
-    units = {u.unit_id: u for u in AcademicUnit.query.filter(
+    units = {u.unit_id: u.unit_name for u in AcademicUnit.query.filter(
         AcademicUnit.unit_id.in_(model["vocabulary"]))}
+    skills = {s.skill_id: s.name for s in Skill.query.filter(
+        Skill.skill_id.in_(model["skill_vocabulary"]))}
     return jsonify({
         "model_type": model["model_type"],
         "fitted_at": model["fitted_at"],
         "n_opportunities": len(model["opportunity_ids"]),
-        # zip pairs each unit id with its IDF weight (same order in both lists).
-        "idf": [{
-            "unit_id": uid,
-            "unit_name": units[uid].unit_name if uid in units else None,
-            "idf": round(float(w), 6),
-        } for uid, w in zip(model["vocabulary"], model["idf"])],
+        # zip pairs each id with its IDF weight (same order in both lists).
+        "idf": [{"unit_id": uid, "unit_name": units.get(uid), "idf": round(float(w), 6)}
+                for uid, w in zip(model["vocabulary"], model["idf"])],
+        "skill_idf": [{"skill_id": sid, "name": skills.get(sid), "idf": round(float(w), 6)}
+                      for sid, w in zip(model["skill_vocabulary"], model["skill_idf"])],
     })
