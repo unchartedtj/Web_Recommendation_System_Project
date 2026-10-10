@@ -1,4 +1,4 @@
-"""Import every model here so Flask-Migrate (Alembic) detects all 12 tables.
+"""Import every model here so Flask-Migrate (Alembic) detects all tables.
 
 It also means other code can simply write `from app.models import User, Grade`
 instead of remembering which file each class lives in.
@@ -13,6 +13,7 @@ from app.models.placement import (
     Recommendation,
     RequirementImportance,
 )
+from app.models.profile import OpportunitySkill, Sector, Skill, StudentInterest, StudentSkill
 from app.models.user import IndustryPartner, Student, SystemAdmin, User, UserRole
 
 # __all__ lists the names this package "exports" (what `from app.models import *` gives you).
@@ -21,4 +22,5 @@ __all__ = [
     "AcademicUnit", "GradeProfile", "Grade",
     "InternshipOpportunity", "OpportunityPrecursor", "Recommendation",
     "Application", "PlacementRecord",
+    "Skill", "Sector", "OpportunitySkill", "StudentSkill", "StudentInterest",
 ]
