@@ -1,0 +1,16 @@
+config,group,n,top1,top3,grade_side_wins,interest_side_wins,other_wins
+grades_only,aligned,30,0.9667,1.0,,,
+grades_only,borderline,10,1.0,1.0,,,
+grades_only,noisy,10,1.0,1.0,,,
+grades_only,all_labelled,50,0.98,1.0,,,
+grades_only,conflicting,10,,,10,0,0
+grades_skills,aligned,30,1.0,1.0,,,
+grades_skills,borderline,10,1.0,1.0,,,
+grades_skills,noisy,10,1.0,1.0,,,
+grades_skills,all_labelled,50,1.0,1.0,,,
+grades_skills,conflicting,10,,,8,0,2
+all_three,aligned,30,1.0,1.0,,,
+all_three,borderline,10,1.0,1.0,,,
+all_three,noisy,10,1.0,1.0,,,
+all_three,all_labelled,50,1.0,1.0,,,
+all_three,conflicting,10,,,5,3,2
