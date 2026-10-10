@@ -1,22 +1,41 @@
-"""Recommendation engine: TF-IDF weighted requirement vectors + cosine similarity.
+"""Recommendation engine: matches students to internships on GRADES, SKILLS and INTERESTS.
 
 How it works
 ------------
-1. "Training" (update_model): every OPEN opportunity becomes a row in an
-   opportunity x unit matrix. A cell holds the importance of that unit to the
-   opportunity (essential = 2, desirable = 1, not required = 0).
-2. IDF weights are learnt from the binary version of that matrix with sklearn's
-   TfidfTransformer(smooth_idf=True): idf(u) = ln((1 + n) / (1 + df(u))) + 1.
-   A unit required by many opportunities (e.g. Database Systems) is less
-   distinctive, so it gets a lower weight than a unit only one opportunity needs.
-3. Opportunity vector = importance weight x idf  (non-zero only on its own units).
-   Student vector     = mark / 100 x idf        (for every vocabulary unit).
-4. match_score = cosine similarity of the two vectors (0 to 1).
-5. Ranking: students who meet every ESSENTIAL minimum mark come first, then by
-   match_score, then by the student's average mark in that opportunity's units.
+The final match score combines three parts (weights in config MATCH_WEIGHTS):
 
-Worked mini example (2 opportunities, 3 units)
-----------------------------------------------
+    match_score = 0.60 × grade_score + 0.25 × skill_score + 0.15 × interest_score
+
+1. grade_score (TF-IDF + cosine over academic units)
+   - "Training" (update_model): every OPEN opportunity becomes a row in an
+     opportunity x unit matrix. A cell holds the importance of that unit to the
+     opportunity (essential = 2, desirable = 1, not required = 0).
+   - IDF weights are learnt from the binary version of that matrix with sklearn's
+     TfidfTransformer(smooth_idf=True): idf(u) = ln((1 + n) / (1 + df(u))) + 1.
+     A unit required by many opportunities (e.g. Database Systems) is less
+     distinctive, so it gets a lower weight than a unit only one opportunity needs.
+   - Opportunity vector = importance weight x idf (non-zero only on its own units).
+     Student vector     = mark / 100 x idf        (for every vocabulary unit).
+   - grade_score = cosine similarity of the two vectors (0 to 1).
+
+2. skill_score (a second TF-IDF + cosine model, over technical skills)
+   - Same idea, over an opportunity x skill matrix (essential 2, desirable 1).
+   - Student skill vector = 1 for each skill they selected x skill idf.
+     A rare skill (needed by one internship) counts more than a common one (e.g. SQL).
+   - Skills no open opportunity requires are ignored.
+
+3. interest_score: 1.0 if the opportunity's sector is one of the student's career
+   interests, otherwise 0.0.
+
+Eligibility and ranking
+   - A student who misses an ESSENTIAL unit minimum mark is "not eligible" for that
+     opportunity. Missing skills are listed but never make a student ineligible,
+     because skills are self-reported and can be learnt.
+   - Ranking: eligible first, then by match_score, then by the student's average mark in
+     the opportunity's units (tie-breaker), then by opportunity id (stable order).
+
+Worked mini example (grades part: 2 opportunities, 3 units)
+-----------------------------------------------------------
     Opportunity A requires: OOP (essential), Databases (desirable)
     Opportunity B requires: Databases (essential), Networks (essential)
     n = 2 opportunities. Databases is needed by both (df=2); OOP and Networks by one (df=1).
@@ -27,10 +46,11 @@ Worked mini example (2 opportunities, 3 units)
         [0.90 x 1.405, 0.60 x 1.0, 0.40 x 1.405]
     and cosine similarity then says how closely the student's "shape" of strengths
     points in the same direction as each opportunity's requirements.
+    The skills part works the same way, with 1 (has the skill) or 0 instead of mark/100.
 
-The maths is kept in pure functions (build_model, build_student_vector, score,
-evaluate_requirements, rank, recommend) that take plain Python data, so they can be
-unit tested and used by evaluation/evaluate_engine.py without a database.
+The maths is kept in pure functions (build_model, build_student_vector, build_skill_vector,
+score, skill_scores, interest_scores, combine, rank, recommend) that take plain Python data,
+so they can be unit tested and used by evaluation/evaluate_engine.py without a database.
 The RecommendationEngine class wraps them with database access and model persistence.
 """
 # Lets us write type hints like `list | None` on older Python versions.
@@ -51,10 +71,13 @@ from sklearn.metrics.pairwise import cosine_similarity         # computes the ma
 log = logging.getLogger(__name__)
 
 # Name shown in the admin retrain response and stored with the model.
-MODEL_TYPE = "TF-IDF + Cosine Similarity"
+MODEL_TYPE = "TF-IDF + Cosine Similarity (grades, skills) + interest match"
 # How much each importance level counts in an opportunity's vector.
 # Essential counts double, so it pulls the score more than desirable does.
 IMPORTANCE_WEIGHTS = {"essential": 2.0, "desirable": 1.0}
+# Default weights of the three parts (the app uses config MATCH_WEIGHTS, which has the same values).
+DEFAULT_WEIGHTS = {"grades": 0.60, "skills": 0.25, "interests": 0.15}
+WEIGHT_KEYS = ("grades", "skills", "interests")
 
 
 class IncompleteGradesError(Exception):
@@ -77,77 +100,102 @@ class IncompleteGradesError(Exception):
 # Pure functions (no database)
 # =============================================================================
 
-def requirements_fingerprint(opportunities: list[dict]) -> str:
-    """Hash of the requirement structure. If it changes, the fitted model is stale.
+def validate_weights(weights: dict) -> dict:
+    """Check the match weights: exactly grades/skills/interests, none negative, sum = 1.
 
-    We put every (opportunity, unit, importance, min mark) into a fixed, sorted order,
-    turn it into text and hash it. Same requirements → same hash; ANY change → different
-    hash. Comparing two short hashes is much cheaper than comparing all the data.
+    Returns them as floats. Raises ValueError otherwise (create_app calls this at startup).
+    """
+    if set(weights) != set(WEIGHT_KEYS):
+        raise ValueError(f"MATCH_WEIGHTS must have exactly the keys {WEIGHT_KEYS}")
+    clean = {k: float(weights[k]) for k in WEIGHT_KEYS}
+    if any(v < 0 for v in clean.values()):
+        raise ValueError("MATCH_WEIGHTS values can't be negative")
+    if abs(sum(clean.values()) - 1.0) > 1e-9:
+        raise ValueError(f"MATCH_WEIGHTS must add up to 1 (got {sum(clean.values())})")
+    return clean
+
+
+def requirements_fingerprint(opportunities: list[dict]) -> str:
+    """Hash of everything the model is built from (units, skills, sectors).
+    If it changes, the fitted model is stale.
+
+    We put every requirement into a fixed, sorted order, turn it into text and hash it.
+    Same requirements → same hash; ANY change → different hash.
     """
     canonical = sorted(
-        (o["id"], sorted((r["unit_id"], r["importance"],
-                          None if r.get("min_mark") is None else float(r["min_mark"]))
-                         for r in o["requirements"]))
+        (o["id"],
+         sorted((r["unit_id"], r["importance"],
+                 None if r.get("min_mark") is None else float(r["min_mark"]))
+                for r in o["requirements"]),
+         sorted((s["skill_id"], s["importance"]) for s in o.get("skills", [])),
+         o.get("sector_id"))
         for o in opportunities
     )
     return hashlib.sha256(json.dumps(canonical).encode()).hexdigest()
 
 
-def build_model(opportunities: list[dict]) -> dict:
-    """Fit the model ("training").
+def _fit_weighted_tfidf(opps: list[dict], items_key: str, id_key: str):
+    """Fit one TF-IDF model over an opportunity x item matrix (items = units or skills).
 
-    opportunities: [{"id": int, "title": str, "requirements":
-                     [{"unit_id": int, "importance": "essential"|"desirable",
-                       "min_mark": float | None}, ...]}, ...]
-    Returns a plain dict that can be saved with joblib.
+    Returns (vocabulary, idf, opportunity vectors, fitted transformer).
+    Shared by the units model and the skills model, so both use exactly the same maths.
     """
-    # Sort by id so row i of the matrix always means the same opportunity.
-    opps = sorted(opportunities, key=lambda o: o["id"])
-    # The vocabulary = every unit required by at least one open opportunity.
-    # A set {...} removes duplicates; sorted() fixes the column order.
-    vocabulary = sorted({r["unit_id"] for o in opps for r in o["requirements"]})
-
-    # Start with an "empty" model; the real values are filled in below.
-    model = {
-        "model_type": MODEL_TYPE,
-        "vocabulary": vocabulary,                              # column j = unit vocabulary[j]
-        "idf": np.zeros(len(vocabulary)),                      # one IDF weight per unit
-        "opportunity_ids": [o["id"] for o in opps],            # row i = opportunity_ids[i]
-        "opportunities": opps,                                 # kept for titles/requirements
-        "opp_vectors": np.zeros((len(opps), len(vocabulary))), # the opportunity x unit matrix
-        "transformer": None,                                   # the fitted sklearn object
-        "fingerprint": requirements_fingerprint(opps),         # used to detect staleness
-        "fitted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    }
+    # The vocabulary = every item required by at least one opportunity (sorted ids = columns).
+    vocabulary = sorted({it[id_key] for o in opps for it in o.get(items_key, [])})
     if not opps or not vocabulary:
-        return model  # nothing open to recommend; sklearn can't fit an empty matrix
+        # Nothing to learn from (sklearn can't fit an empty matrix).
+        return vocabulary, np.zeros(len(vocabulary)), np.zeros((len(opps), len(vocabulary))), None
 
-    # col maps a unit_id to its column number, e.g. {4: 0, 7: 1, 9: 2}.
-    col = {unit_id: j for j, unit_id in enumerate(vocabulary)}
-
-    # Fill the importance matrix: weights[row, column] = 2 (essential) or 1 (desirable).
-    # Cells for units an opportunity doesn't need stay 0.
+    col = {item_id: j for j, item_id in enumerate(vocabulary)}   # item id → column number
+    # weights[row, column] = 2 (essential) or 1 (desirable); 0 if not required.
     weights = np.zeros((len(opps), len(vocabulary)))
     for i, opp in enumerate(opps):
-        for req in opp["requirements"]:
-            weights[i, col[req["unit_id"]]] = IMPORTANCE_WEIGHTS[req["importance"]]
+        for it in opp.get(items_key, []):
+            weights[i, col[it[id_key]]] = IMPORTANCE_WEIGHTS[it["importance"]]
 
-    # IDF is learnt from whether a unit is required at all (binary), not from its
-    # importance, so "how many opportunities need this unit" is all that affects rarity.
-    # (weights > 0) gives True/False; .astype(float) turns that into 1.0/0.0.
+    # IDF is learnt from whether an item is required at all (binary), not from its
+    # importance, so "how many opportunities need this item" is all that affects rarity.
     binary = (weights > 0).astype(float)
     # norm=None: don't rescale rows; smooth_idf=True: the "+1" smoothing in the formula.
     transformer = TfidfTransformer(smooth_idf=True, norm=None).fit(binary)
+    # numpy multiplies each column by that item's IDF weight ("broadcasting").
+    return vocabulary, transformer.idf_.copy(), weights * transformer.idf_, transformer
 
-    model["idf"] = transformer.idf_.copy()                # the learnt IDF weight per unit
-    # numpy multiplies each column by that unit's IDF weight ("broadcasting").
-    model["opp_vectors"] = weights * transformer.idf_
-    model["transformer"] = transformer
-    return model
+
+def build_model(opportunities: list[dict]) -> dict:
+    """Fit the model ("training").
+
+    opportunities: [{"id": int, "title": str, "sector_id": int | None,
+                     "requirements": [{"unit_id", "importance", "min_mark"}, ...],
+                     "skills":       [{"skill_id", "importance"}, ...]}, ...]
+    Returns a plain dict that can be saved with joblib.
+    """
+    # Sort by id so row i of every matrix always means the same opportunity.
+    opps = sorted(opportunities, key=lambda o: o["id"])
+    vocab, idf, vectors, transformer = _fit_weighted_tfidf(opps, "requirements", "unit_id")
+    s_vocab, s_idf, s_vectors, s_transformer = _fit_weighted_tfidf(opps, "skills", "skill_id")
+    return {
+        "model_type": MODEL_TYPE,
+        "opportunity_ids": [o["id"] for o in opps],            # row i = opportunity_ids[i]
+        "opportunities": opps,                                 # kept for titles/requirements
+        "sector_ids": [o.get("sector_id") for o in opps],      # for the interest score
+        # --- units model (grade_score) ---
+        "vocabulary": vocab,                                   # column j = unit vocabulary[j]
+        "idf": idf,
+        "opp_vectors": vectors,
+        "transformer": transformer,
+        # --- skills model (skill_score) ---
+        "skill_vocabulary": s_vocab,                           # column j = skill s_vocab[j]
+        "skill_idf": s_idf,
+        "skill_vectors": s_vectors,
+        "skill_transformer": s_transformer,
+        "fingerprint": requirements_fingerprint(opps),         # used to detect staleness
+        "fitted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
 
 
 def build_student_vector(marks: dict[int, float], model: dict) -> np.ndarray:
-    """mark / 100 x idf for every vocabulary unit.
+    """Grades: mark / 100 x idf for every vocabulary unit.
 
     Example: mark 80 in a unit with idf 1.69 → 0.80 x 1.69 = 1.35.
     Raises IncompleteGradesError if a vocabulary unit has no mark or an out-of-range mark.
@@ -157,24 +205,68 @@ def build_student_vector(marks: dict[int, float], model: dict) -> np.ndarray:
                if u in marks and not 0 <= float(marks[u]) <= 100]
     if missing or invalid:
         raise IncompleteGradesError(missing, invalid)
-    # Marks in the same column order as the vocabulary, scaled to 0-1.
     raw = np.array([float(marks[u]) / 100.0 for u in model["vocabulary"]])
     return raw * model["idf"]   # element-by-element multiply with the IDF weights
 
 
+def build_skill_vector(skill_ids, model: dict) -> np.ndarray:
+    """Skills: 1 x skill idf for each skill the student selected, 0 otherwise.
+    Selected skills that no open opportunity requires aren't in the vocabulary, so
+    they're simply ignored."""
+    chosen = set(skill_ids)
+    raw = np.array([1.0 if s in chosen else 0.0 for s in model["skill_vocabulary"]])
+    return raw * model["skill_idf"]
+
+
+def _cosine(vector: np.ndarray, matrix: np.ndarray, n_rows: int) -> np.ndarray:
+    """Cosine similarity of one vector against every row of a matrix, clipped to [0, 1].
+    A zero vector (or an empty vocabulary) gives 0 for every row."""
+    if n_rows == 0:
+        return np.array([])
+    if matrix.shape[1] == 0 or not np.any(vector):
+        return np.zeros(n_rows)
+    # sklearn expects 2-D input, so reshape(1, -1) turns the vector into a 1-row matrix.
+    sims = cosine_similarity(vector.reshape(1, -1), matrix)[0]
+    # All values are non-negative, so cosine is already within [0, 1]; clip float noise.
+    return np.clip(sims, 0.0, 1.0)
+
+
 def score(student_vector: np.ndarray, model: dict) -> np.ndarray:
-    """Cosine similarity between the student and every opportunity (0 to 1).
+    """grade_score: cosine similarity between the student's grades and every opportunity.
 
     Cosine similarity measures the ANGLE between two vectors: 1 = pointing the same
     way (the student is strong exactly where the opportunity needs), 0 = no overlap.
     """
-    if len(model["opportunity_ids"]) == 0:
-        return np.array([])
-    # sklearn expects 2-D input, so reshape(1, -1) turns the vector into a 1-row matrix.
-    # The result is a 1 x N matrix (one score per opportunity); [0] takes that single row.
-    sims = cosine_similarity(student_vector.reshape(1, -1), model["opp_vectors"])[0]
-    # All values are non-negative, so cosine is already within [0, 1]; clip float noise.
-    return np.clip(sims, 0.0, 1.0)
+    return _cosine(student_vector, model["opp_vectors"], len(model["opportunity_ids"]))
+
+
+def skill_scores(student_skill_vector: np.ndarray, model: dict) -> np.ndarray:
+    """skill_score: cosine similarity between the student's skills and every opportunity's."""
+    return _cosine(student_skill_vector, model["skill_vectors"], len(model["opportunity_ids"]))
+
+
+def interest_scores(sector_ids, model: dict) -> np.ndarray:
+    """interest_score: 1.0 where the opportunity's sector is one of the student's interests."""
+    chosen = set(sector_ids)
+    return np.array([1.0 if s in chosen else 0.0 for s in model["sector_ids"]])
+
+
+def combine(grade: float, skill: float, interest: float, weights: dict) -> float:
+    """The final match score: the weighted sum of the three parts (always 0 to 1)."""
+    return (weights["grades"] * grade + weights["skills"] * skill
+            + weights["interests"] * interest)
+
+
+def missing_skills(skill_ids, opp_skills: list[dict],
+                   skill_labels: dict[int, str] | None = None) -> tuple[list, list]:
+    """The opportunity's required skills the student doesn't have: (essential, desirable)."""
+    labels = skill_labels or {}
+    have = set(skill_ids)
+    essential = [labels.get(s["skill_id"], str(s["skill_id"])) for s in opp_skills
+                 if s["importance"] == "essential" and s["skill_id"] not in have]
+    desirable = [labels.get(s["skill_id"], str(s["skill_id"])) for s in opp_skills
+                 if s["importance"] == "desirable" and s["skill_id"] not in have]
+    return essential, desirable
 
 
 def evaluate_requirements(marks: dict[int, float], requirements: list[dict],
@@ -229,27 +321,44 @@ def rank(results: list[dict]) -> list[dict]:
 
 
 def recommend(marks: dict[int, float], model: dict,
-              unit_labels: dict[int, str] | None = None) -> list[dict]:
+              unit_labels: dict[int, str] | None = None, *,
+              skill_ids=(), sector_ids=(), weights: dict | None = None,
+              skill_labels: dict[int, str] | None = None) -> list[dict]:
     """Score and rank every opportunity in the model for one student.
 
-    This is the whole pipeline in one call: student vector → cosine scores →
-    minimum-mark checks → ranking.
+    The whole pipeline in one call: the three part-scores → weighted final score →
+    minimum-mark checks → missing skills → ranking.
+    (Arguments after `*` must be given by name, e.g. recommend(marks, model, skill_ids=[1, 2]).)
     """
     if not model["opportunity_ids"]:
         return []   # no open opportunities → nothing to recommend
-    scores = score(build_student_vector(marks, model), model)
+    weights = validate_weights(weights or DEFAULT_WEIGHTS)
+    grades = score(build_student_vector(marks, model), model)
+    skills = skill_scores(build_skill_vector(skill_ids, model), model)
+    interests = interest_scores(sector_ids, model)
+
     results = []
-    # zip pairs each opportunity with its score (same order as the matrix rows).
-    for opp, s in zip(model["opportunities"], scores):
+    # zip pairs each opportunity with its three scores (same order as the matrix rows).
+    for opp, g, s, i in zip(model["opportunities"], grades, skills, interests):
         meets, unmet, avg = evaluate_requirements(marks, opp["requirements"], unit_labels)
+        miss_ess, miss_des = missing_skills(skill_ids, opp.get("skills", []), skill_labels)
+        final = combine(float(g), float(s), float(i), weights)
         results.append({
             "opportunity_id": opp["id"],
             "title": opp.get("title"),
-            "match_score": round(float(s), 4),          # e.g. 0.6317
-            "match_percent": round(float(s) * 100, 2),  # e.g. 63.17
+            "match_score": round(final, 4),            # e.g. 0.6317
+            "match_percent": round(final * 100, 2),    # e.g. 63.17
+            "breakdown": {
+                "grade_score": round(float(g), 4),
+                "skill_score": round(float(s), 4),
+                "interest_score": round(float(i), 4),
+            },
             "avg_requirement_mark": round(avg, 2),
             "meets_requirements": meets,
             "unmet_requirements": unmet,
+            "missing_essential_skills": miss_ess,
+            "missing_desirable_skills": miss_des,
+            "interest_match": bool(i),
         })
     return rank(results)
 
@@ -269,7 +378,8 @@ class RecommendationEngine:
 
     def __init__(self, model_path: str | None = None):
         self.model_type = MODEL_TYPE
-        self.tfidf_vectorizer: TfidfTransformer | None = None  # fitted in update_model()
+        self.tfidf_vectorizer: TfidfTransformer | None = None  # units model, fitted in update_model()
+        self.skill_vectorizer: TfidfTransformer | None = None  # skills model, fitted in update_model()
         self.cosine_similarity = cosine_similarity             # the similarity function used
         self.model_path = model_path                           # where engine.joblib lives
         self.model: dict | None = None                         # None = not fitted/loaded yet
@@ -290,15 +400,21 @@ class RecommendationEngine:
         if not self.model_path or not os.path.exists(self.model_path):
             return False
         try:
-            self._set_model(joblib.load(self.model_path))
-            return True
+            model = joblib.load(self.model_path)
         except Exception:  # corrupt or incompatible file: refit later
             log.warning("Could not load %s; it will be refitted", self.model_path, exc_info=True)
             self.model = None
             return False
+        if "skill_vocabulary" not in model:
+            # Saved by an older version (grades only). Not an error: it's refitted on first use.
+            log.info("Model file %s is from an older version; it will be refitted", self.model_path)
+            self.model = None
+            return False
+        self._set_model(model)
+        return True
 
     def _save(self):
-        """Save the current model to engine.joblib."""
+        """Save the current model (both the units and the skills parts) to engine.joblib."""
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)  # create ml_models/ if needed
         # Write to a temp file then atomically replace, so a crash never leaves half a model.
         fd, tmp = tempfile.mkstemp(dir=os.path.dirname(self.model_path), suffix=".tmp")
@@ -313,6 +429,13 @@ class RecommendationEngine:
     def _set_model(self, model: dict):
         self.model = model
         self.tfidf_vectorizer = model.get("transformer")
+        self.skill_vectorizer = model.get("skill_transformer")
+
+    def fitted_at(self) -> datetime | None:
+        """When the current model was fitted (naive UTC, comparable with DB timestamps)."""
+        if not self.model:
+            return None
+        return datetime.fromisoformat(self.model["fitted_at"]).replace(tzinfo=None)
 
     # ---- database helpers ---------------------------------------------------------
 
@@ -320,50 +443,67 @@ class RecommendationEngine:
     def _load_open_opportunities() -> list[dict]:
         """Open opportunities as plain dicts (the input format of build_model).
 
-        Requirements on INACTIVE units are ignored: students can't submit grades
-        for them, so they can't be scored.
+        "Open" = status open AND the application deadline hasn't passed (or there is none),
+        the same rule the Browse page uses, so students are never recommended an internship
+        they can no longer apply for. When a deadline passes, the fingerprint changes and the
+        model refits automatically on the next request.
+        Requirements and skills that are INACTIVE are ignored: students can't select
+        them, so they can't be scored.
         """
         # Imported inside the function so this module can be imported (e.g. by the
         # evaluation script) without needing the Flask app or database.
+        from datetime import date
+
+        from sqlalchemy import or_
         from sqlalchemy.orm import selectinload
 
-        from app.models import InternshipOpportunity, OpportunityPrecursor, OpportunityStatus
+        from app.models import (InternshipOpportunity, OpportunityPrecursor, OpportunitySkill,
+                                OpportunityStatus)
 
         rows = (InternshipOpportunity.query
                 .filter_by(status=OpportunityStatus.OPEN)
-                # selectinload fetches all requirements, their units and the partners in a
-                # few queries up front, instead of one extra query per opportunity.
+                .filter(or_(InternshipOpportunity.application_deadline.is_(None),
+                            InternshipOpportunity.application_deadline >= date.today()))
+                # selectinload fetches all related rows in a few queries up front,
+                # instead of one extra query per opportunity.
                 .options(selectinload(InternshipOpportunity.precursors)
                          .selectinload(OpportunityPrecursor.unit),
-                         selectinload(InternshipOpportunity.partner))
+                         selectinload(InternshipOpportunity.skills)
+                         .selectinload(OpportunitySkill.skill),
+                         selectinload(InternshipOpportunity.partner),
+                         selectinload(InternshipOpportunity.sector))
                 .order_by(InternshipOpportunity.opportunity_id)
                 .all())
         # Convert database objects into plain dictionaries.
         return [{
             "id": o.opportunity_id,
             "title": o.title,
-            "sector": o.sector,
+            "sector_id": o.sector_id,
+            "sector": o.sector.name if o.sector else None,
             "organization": o.partner.organization_name if o.partner else None,
             "requirements": [{
                 "unit_id": p.unit_id,
                 "importance": p.importance,
                 "min_mark": None if p.min_mark is None else float(p.min_mark),
             } for p in o.precursors if p.unit.is_active],
+            "skills": [{"skill_id": s.skill_id, "importance": s.importance}
+                       for s in o.skills if s.skill.is_active],
         } for o in rows]
 
     # ---- UML: updateModel() ---------------------------------------------------------
 
     def update_model(self, opportunities: list[dict] | None = None) -> dict:
-        """Refit on all OPEN opportunities and save to disk ("training").
+        """Refit BOTH models (units and skills) on all OPEN opportunities and save to disk.
 
         Called after every opportunity create/edit/close, by `flask seed-data`,
-        and by the admin retrain endpoint.
+        by the admin retrain endpoint, and after admin changes to skills/sectors.
         """
         data = opportunities if opportunities is not None else self._load_open_opportunities()
         self._set_model(build_model(data))
         self._save()
-        log.info("Recommendation model fitted: %d opportunities, %d units",
-                 len(self.model["opportunity_ids"]), len(self.model["vocabulary"]))
+        log.info("Recommendation model fitted: %d opportunities, %d units, %d skills",
+                 len(self.model["opportunity_ids"]), len(self.model["vocabulary"]),
+                 len(self.model["skill_vocabulary"]))
         return self.model
 
     def ensure_fresh(self) -> list[dict]:
@@ -417,30 +557,69 @@ class RecommendationEngine:
 
     # ---- UML: generateRecommendations(studentId) ------------------------------------
 
-    def generate_recommendations(self, student_id: int) -> list[dict]:
-        """Validate, score and rank, then replace the student's saved recommendations
-        in one transaction. Returns the ranked list."""
+    def _score(self, student_id: int) -> list[dict]:
+        """Validate the profile, then score and rank every open opportunity. Saves NOTHING.
+
+        Shared by generate_recommendations (which then saves the results) and
+        score_student (which only reads them, for the browse/details pages).
+        Raises IncompleteGradesError if the grades are incomplete.
+        """
+        from flask import current_app
+
         from app.extensions import db
-        from app.models import AcademicUnit, Recommendation
+        from app.models import AcademicUnit, Skill, Student
 
         # 1. Make sure the model matches the current open opportunities.
         opportunities = self.ensure_fresh()
         # 2. Check the grades. If incomplete this raises, BEFORE anything is written (TC04).
         marks = self.validate_profile(student_id)
 
-        # 3. Score and rank. Unit names make the "unmet requirements" readable.
-        labels = {u.unit_id: u.unit_name
-                  for u in AcademicUnit.query.filter(
-                      AcademicUnit.unit_id.in_(self.model["vocabulary"]))}
-        results = recommend(marks, self.model, labels)
+        # 3. The student's selected skills and career interests (active ones only).
+        student = db.session.get(Student, student_id)
+        skill_ids = [s.skill_id for s in student.skills if s.skill.is_active]
+        sector_ids = [i.sector_id for i in student.interests if i.sector.is_active]
+
+        # 4. Score and rank. Names make "unmet requirements" and "missing skills" readable.
+        unit_labels = {u.unit_id: u.unit_name for u in AcademicUnit.query.filter(
+            AcademicUnit.unit_id.in_(self.model["vocabulary"]))}
+        skill_labels = {s.skill_id: s.name for s in Skill.query.filter(
+            Skill.skill_id.in_(self.model["skill_vocabulary"]))}
+        weights = current_app.config.get("MATCH_WEIGHTS", DEFAULT_WEIGHTS)
+        results = recommend(marks, self.model, unit_labels, skill_ids=skill_ids,
+                            sector_ids=sector_ids, weights=weights, skill_labels=skill_labels)
         # Add organisation and sector (not needed for the maths, but shown to students).
         meta = {o["id"]: o for o in opportunities}
         for r in results:
             r["organization"] = meta[r["opportunity_id"]]["organization"]
             r["sector"] = meta[r["opportunity_id"]]["sector"]
+        return results
 
-        # 4. Save: delete the old rows and insert the new ones in ONE transaction,
-        #    so the student never ends up with half old / half new results.
+    def score_student(self, student_id: int) -> dict[int, dict] | None:
+        """Live match results for one student, WITHOUT saving them.
+
+        Returns {opportunity_id: result} (see recommend() for the result fields), or None if
+        the student's profile is incomplete. Used to show match % on browse and details pages.
+        """
+        try:
+            return {r["opportunity_id"]: r for r in self._score(student_id)}
+        except IncompleteGradesError:
+            return None
+
+    def generate_recommendations(self, student_id: int, commit: bool = True) -> list[dict]:
+        """Validate, score and rank, then replace the student's saved recommendations.
+
+        commit=True  → saves in its own transaction (e.g. the "generate" endpoint).
+        commit=False → only flushes, so the caller can save the student's profile AND the
+                       recommendations in ONE transaction (the profile endpoint does this).
+        Returns the ranked list.
+        """
+        from app.extensions import db
+        from app.models import Recommendation
+
+        results = self._score(student_id)   # raises before anything is written (TC04)
+
+        # 5. Replace the old rows with the new ones, so the student never ends up with
+        #    half old / half new results.
         generated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         try:
             Recommendation.query.filter_by(student_id=student_id).delete()
@@ -453,12 +632,21 @@ class RecommendationEngine:
                     meets_requirements=r["meets_requirements"],
                     avg_requirement_mark=r["avg_requirement_mark"],
                     unmet_requirements=r["unmet_requirements"],
+                    grade_score=r["breakdown"]["grade_score"],
+                    skill_score=r["breakdown"]["skill_score"],
+                    interest_score=r["breakdown"]["interest_score"],
+                    interest_match=r["interest_match"],
+                    missing_skills={"essential": r["missing_essential_skills"],
+                                    "desirable": r["missing_desirable_skills"]},
                     generated_at=generated_at,
                 ))
-            db.session.commit()      # make it permanent
+            if commit:
+                db.session.commit()      # make it permanent
+            else:
+                db.session.flush()       # the caller commits (or rolls back) everything
         except Exception:
-            db.session.rollback()    # undo everything from this transaction
-            raise                    # and pass the error on
+            db.session.rollback()        # undo everything from this transaction
+            raise                        # and pass the error on
         # The "Z" suffix marks the time as UTC for the frontend.
         for r in results:
             r["generated_at"] = generated_at.isoformat(timespec="seconds") + "Z"
