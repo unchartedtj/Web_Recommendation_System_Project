@@ -9,15 +9,32 @@ service, and return JSON. The actual rules live in validators.py and services.py
 """
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from sqlalchemy import func
 
 from app.auth import auth_bp
 from app.auth.services import create_user_with_profile, serialize_user
 from app.auth.validators import validate_login, validate_registration
 from app.errors import ApiError
 from app.extensions import db
-from app.models import User
+from app.models import SystemAdmin, User
 
 INVALID_CREDENTIALS = "Invalid email or password"
+
+
+def _find_login_user(identifier: str) -> User | None:
+    """Find the account someone is trying to log in to.
+
+    - Contains "@"  → it's an email: look it up in the users table (any role).
+    - No "@"        → it's a USERNAME, which only system admins have: match it against
+                      the admin's name, ignoring upper/lower case (so "Admin" works).
+    Students and partners can't log in by name, only by email.
+    """
+    if "@" in identifier:
+        return User.query.filter_by(email=identifier).first()
+    return (User.query.join(SystemAdmin)                          # only users with an admin row
+            .filter(func.lower(SystemAdmin.name) == identifier)   # identifier is already lowercase
+            .order_by(SystemAdmin.admin_id)                       # if two share a name, the oldest wins
+            .first())
 
 
 def _json_body() -> dict:
@@ -49,7 +66,7 @@ def login():
     if errors:
         raise ApiError("Validation failed", 400, errors)
 
-    user = User.query.filter_by(email=data["email"]).first()   # None if no such email
+    user = _find_login_user(data["email"])   # None if no such email / admin username
     # One generic message for an unknown email or a wrong password, so the
     # endpoint can't be used to find out which emails are registered.
     if user is None or not user.check_password(data["password"]):
