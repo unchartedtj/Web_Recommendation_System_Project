@@ -17,6 +17,13 @@ frontend/   React SPA       (src/api, src/pages, src/components, src/context)
 
 ---
 
+## Quick start (after the first-time setup below)
+- **Start:** double-click **`start-system.bat`** (or the "Start WBL System" desktop shortcut).
+  It starts MySQL if needed, runs the backend and frontend **in the background** (no windows
+  to keep open), and opens http://localhost:5173.
+- **Stop:** double-click **`stop-system.bat`** (or "Stop WBL System").
+- **Something wrong?** Check `logs/backend-errors.log` and `logs/frontend.log`.
+
 ## Prerequisites (Windows)
 - Python 3.10+ (`python --version`)
 - Node.js 20+ (`node --version`)
