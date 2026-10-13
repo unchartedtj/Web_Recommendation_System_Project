@@ -18,11 +18,12 @@ frontend/   React SPA       (src/api, src/pages, src/components, src/context)
 ---
 
 ## Quick start (after the first-time setup below)
-- **Start:** double-click **`start-system.bat`** in the project folder.
-  It starts MySQL if needed, runs the backend and frontend **in the background** (no windows
-  to keep open), and opens http://localhost:5173.
-- **Stop:** double-click **`stop-system.bat`** in the project folder.
-- **Something wrong?** Check `logs/backend-errors.log` and `logs/frontend.log`.
+- **Start:** open the project folder in VS Code. The tasks in `.vscode/tasks.json` start MySQL
+  (if needed), the backend and the frontend automatically, each in its own terminal tab.
+  Then go to http://localhost:5173. (First time only: allow automatic tasks when VS Code asks.)
+- **Start one by hand:** Ctrl+Shift+P > "Tasks: Run Task" > MySQL / Backend (Flask) / Frontend (React).
+- **Stop:** close VS Code, or click the bin icon on a terminal tab.
+- **Something wrong?** Check the "Backend (Flask)" and "Frontend (React)" terminal tabs for errors.
 
 ## Prerequisites (Windows)
 - Python 3.10+ (`python --version`)
