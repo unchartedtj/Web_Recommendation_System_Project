@@ -16,7 +16,8 @@ dist/
 
 # Editors / OS
 .vscode/*
-!.vscode/tasks.json   # keep the auto-start tasks
+# ...except the auto-start tasks
+!.vscode/tasks.json
 .idea/
 Thumbs.db
 desktop.ini
