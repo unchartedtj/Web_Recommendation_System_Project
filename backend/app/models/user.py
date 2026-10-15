@@ -1,16 +1,4 @@
-"""User accounts and the three role-specific profile tables.
 
-Every person has exactly one `users` row (credentials + role) and exactly one
-matching row in students / industry_partners / system_admins:
-
-    users (email, password_hash, role)
-      ├── students           (admission_no, names, course, year)      if role = student
-      ├── industry_partners  (organization, contact person, phone)    if role = industry_partner
-      └── system_admins      (name)                                   if role = system_admin
-
-Login only needs the `users` table; the profile table holds the role-specific details.
-(See the top of placement.py for how to read db.Column / db.relationship.)
-"""
 import enum
 
 # werkzeug (part of Flask) provides secure password hashing.
@@ -50,11 +38,7 @@ class User(db.Model):
                                    cascade="all, delete-orphan")
 
     def set_password(self, password: str) -> None:
-        """Hash the password and store the hash.
-
-        A hash is one-way: you can't turn it back into the password. It also includes a
-        random "salt", so two users with the same password get different hashes.
-        """
+       
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
