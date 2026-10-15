@@ -1,11 +1,4 @@
-"""Role-based access helpers for protected endpoints.
 
-A decorator is a function that wraps another function to add behaviour before it runs.
-Writing
-    @role_required("industry_partner")
-    def create_opportunity(): ...
-means: "before create_opportunity runs, check the caller is a logged-in industry partner".
-"""
 from functools import wraps
 
 from flask_jwt_extended import get_jwt, get_jwt_identity, verify_jwt_in_request
@@ -16,11 +9,7 @@ from app.models import User
 
 
 def role_required(*roles: str):
-    """Require a valid JWT whose `role` claim is one of `roles`.
-
-    Missing or invalid token → 401 (via the JWT loaders); wrong role → 403.
-    `*roles` accepts any number of roles, e.g. role_required("student", "system_admin").
-    """
+   
     def decorator(fn):
         @wraps(fn)   # keeps the original function's name (Flask needs unique names per route)
         def wrapper(*args, **kwargs):
