@@ -1,5 +1,3 @@
-"""Recommendation engine: TF-IDF + cosine similarity matching on grades (60%), skills (25%) and interests (15%)."""
-# Lets us write type hints like `list | None` on older Python versions.
 from __future__ import annotations
 
 import hashlib      # SHA-256 hashing, used for the "is the model stale?" fingerprint
@@ -18,7 +16,7 @@ log = logging.getLogger(__name__)
 
 # Name shown in the admin retrain response and stored with the model.
 MODEL_TYPE = "TF-IDF + Cosine Similarity (grades, skills) + interest match"
-# How much each importance level counts in an opportunity's vector.
+# Importance level counts in an opportunity's vector.
 # Essential counts double, so it pulls the score more than desirable does.
 IMPORTANCE_WEIGHTS = {"essential": 2.0, "desirable": 1.0}
 # Default weights of the three parts (the app uses config MATCH_WEIGHTS, which has the same values).
@@ -27,11 +25,6 @@ WEIGHT_KEYS = ("grades", "skills", "interests")
 
 
 class IncompleteGradesError(Exception):
-    """The student's grade profile can't be scored (TC04). Nothing is written.
-
-    `missing` = units with no mark; `invalid` = units with a mark outside 0-100.
-    The API turns this into a 400 response listing those units.
-    """
 
     def __init__(self, missing: list | None = None, invalid: list | None = None):
         self.missing = missing or []   # `or []` turns None into an empty list
@@ -42,15 +35,10 @@ class IncompleteGradesError(Exception):
         )
 
 
-# =============================================================================
+
 # Pure functions (no database)
-# =============================================================================
 
 def validate_weights(weights: dict) -> dict:
-    """Check the match weights: exactly grades/skills/interests, none negative, sum = 1.
-
-    Returns them as floats. Raises ValueError otherwise (create_app calls this at startup).
-    """
     if set(weights) != set(WEIGHT_KEYS):
         raise ValueError(f"MATCH_WEIGHTS must have exactly the keys {WEIGHT_KEYS}")
     clean = {k: float(weights[k]) for k in WEIGHT_KEYS}
@@ -62,12 +50,6 @@ def validate_weights(weights: dict) -> dict:
 
 
 def requirements_fingerprint(opportunities: list[dict]) -> str:
-    """Hash of everything the model is built from (units, skills, sectors).
-    If it changes, the fitted model is stale.
-
-    We put every requirement into a fixed, sorted order, turn it into text and hash it.
-    Same requirements → same hash; ANY change → different hash.
-    """
     canonical = sorted(
         (o["id"],
          sorted((r["unit_id"], r["importance"],
@@ -81,11 +63,6 @@ def requirements_fingerprint(opportunities: list[dict]) -> str:
 
 
 def _fit_weighted_tfidf(opps: list[dict], items_key: str, id_key: str):
-    """Fit one TF-IDF model over an opportunity x item matrix (items = units or skills).
-
-    Returns (vocabulary, idf, opportunity vectors, fitted transformer).
-    Shared by the units model and the skills model, so both use exactly the same maths.
-    """
     # The vocabulary = every item required by at least one opportunity (sorted ids = columns).
     vocabulary = sorted({it[id_key] for o in opps for it in o.get(items_key, [])})
     if not opps or not vocabulary:
@@ -109,13 +86,6 @@ def _fit_weighted_tfidf(opps: list[dict], items_key: str, id_key: str):
 
 
 def build_model(opportunities: list[dict]) -> dict:
-    """Fit the model ("training").
-
-    opportunities: [{"id": int, "title": str, "sector_id": int | None,
-                     "requirements": [{"unit_id", "importance", "min_mark"}, ...],
-                     "skills":       [{"skill_id", "importance"}, ...]}, ...]
-    Returns a plain dict that can be saved with joblib.
-    """
     # Sort by id so row i of every matrix always means the same opportunity.
     opps = sorted(opportunities, key=lambda o: o["id"])
     vocab, idf, vectors, transformer = _fit_weighted_tfidf(opps, "requirements", "unit_id")
@@ -141,11 +111,6 @@ def build_model(opportunities: list[dict]) -> dict:
 
 
 def build_student_vector(marks: dict[int, float], model: dict) -> np.ndarray:
-    """Grades: mark / 100 x idf for every vocabulary unit.
-
-    Example: mark 80 in a unit with idf 1.69 → 0.80 x 1.69 = 1.35.
-    Raises IncompleteGradesError if a vocabulary unit has no mark or an out-of-range mark.
-    """
     missing = [u for u in model["vocabulary"] if u not in marks]
     invalid = [u for u in model["vocabulary"]
                if u in marks and not 0 <= float(marks[u]) <= 100]
@@ -156,17 +121,12 @@ def build_student_vector(marks: dict[int, float], model: dict) -> np.ndarray:
 
 
 def build_skill_vector(skill_ids, model: dict) -> np.ndarray:
-    """Skills: 1 x skill idf for each skill the student selected, 0 otherwise.
-    Selected skills that no open opportunity requires aren't in the vocabulary, so
-    they're simply ignored."""
     chosen = set(skill_ids)
     raw = np.array([1.0 if s in chosen else 0.0 for s in model["skill_vocabulary"]])
     return raw * model["skill_idf"]
 
 
 def _cosine(vector: np.ndarray, matrix: np.ndarray, n_rows: int) -> np.ndarray:
-    """Cosine similarity of one vector against every row of a matrix, clipped to [0, 1].
-    A zero vector (or an empty vocabulary) gives 0 for every row."""
     if n_rows == 0:
         return np.array([])
     if matrix.shape[1] == 0 or not np.any(vector):
@@ -178,34 +138,25 @@ def _cosine(vector: np.ndarray, matrix: np.ndarray, n_rows: int) -> np.ndarray:
 
 
 def score(student_vector: np.ndarray, model: dict) -> np.ndarray:
-    """grade_score: cosine similarity between the student's grades and every opportunity.
-
-    Cosine similarity measures the ANGLE between two vectors: 1 = pointing the same
-    way (the student is strong exactly where the opportunity needs), 0 = no overlap.
-    """
     return _cosine(student_vector, model["opp_vectors"], len(model["opportunity_ids"]))
 
 
 def skill_scores(student_skill_vector: np.ndarray, model: dict) -> np.ndarray:
-    """skill_score: cosine similarity between the student's skills and every opportunity's."""
     return _cosine(student_skill_vector, model["skill_vectors"], len(model["opportunity_ids"]))
 
 
 def interest_scores(sector_ids, model: dict) -> np.ndarray:
-    """interest_score: 1.0 where the opportunity's sector is one of the student's interests."""
     chosen = set(sector_ids)
     return np.array([1.0 if s in chosen else 0.0 for s in model["sector_ids"]])
 
 
 def combine(grade: float, skill: float, interest: float, weights: dict) -> float:
-    """The final match score: the weighted sum of the three parts (always 0 to 1)."""
     return (weights["grades"] * grade + weights["skills"] * skill
             + weights["interests"] * interest)
 
 
 def missing_skills(skill_ids, opp_skills: list[dict],
                    skill_labels: dict[int, str] | None = None) -> tuple[list, list]:
-    """The opportunity's required skills the student doesn't have: (essential, desirable)."""
     labels = skill_labels or {}
     have = set(skill_ids)
     essential = [labels.get(s["skill_id"], str(s["skill_id"])) for s in opp_skills
@@ -217,13 +168,6 @@ def missing_skills(skill_ids, opp_skills: list[dict],
 
 def evaluate_requirements(marks: dict[int, float], requirements: list[dict],
                           unit_labels: dict[int, str] | None = None):
-    """Check minimum marks for one opportunity.
-
-    Returns (meets_requirements, unmet, avg_requirement_mark), where:
-    - unmet lists EVERY requirement whose min_mark the student is below (essential or desirable),
-    - meets_requirements is False only if an ESSENTIAL requirement is unmet,
-    - avg_requirement_mark is the student's mean mark over the opportunity's units.
-    """
     unit_labels = unit_labels or {}   # unit_id → name, for readable messages
     unmet = []
     for req in requirements:
@@ -245,12 +189,6 @@ def evaluate_requirements(marks: dict[int, float], requirements: list[dict],
 
 
 def rank(results: list[dict]) -> list[dict]:
-    """Order results and assign ranks 1..N.
-
-    Order: eligible (meets_requirements) first, then match_score descending,
-    then avg_requirement_mark descending (tie-breaker), then opportunity_id for stability.
-    Scores are compared at 4 decimal places (as stored), so float noise can't break a real tie.
-    """
     # Python sorts by the key tuple left to right, smallest first:
     #   not meets  → False (eligible) sorts before True (ineligible)
     #   -score     → negated so HIGHER scores come first
@@ -270,12 +208,6 @@ def recommend(marks: dict[int, float], model: dict,
               unit_labels: dict[int, str] | None = None, *,
               skill_ids=(), sector_ids=(), weights: dict | None = None,
               skill_labels: dict[int, str] | None = None) -> list[dict]:
-    """Score and rank every opportunity in the model for one student.
-
-    The whole pipeline in one call: the three part-scores → weighted final score →
-    minimum-mark checks → missing skills → ranking.
-    (Arguments after `*` must be given by name, e.g. recommend(marks, model, skill_ids=[1, 2]).)
-    """
     if not model["opportunity_ids"]:
         return []   # no open opportunities → nothing to recommend
     weights = validate_weights(weights or DEFAULT_WEIGHTS)
@@ -314,13 +246,6 @@ def recommend(marks: dict[int, float], model: dict,
 # =============================================================================
 
 class RecommendationEngine:
-    """Matches the UML class:
-        attributes: modelType, tfidfVectorizer, cosineSimilarity
-        methods:    generateRecommendations(studentId), rankOpportunities(), updateModel()
-
-    One instance is created when the app starts (app/extensions.py) and shared by
-    every request. It keeps the fitted model in memory (self.model) and on disk.
-    """
 
     def __init__(self, model_path: str | None = None):
         self.model_type = MODEL_TYPE
@@ -333,7 +258,6 @@ class RecommendationEngine:
     # ---- setup / persistence ----------------------------------------------------
 
     def init_app(self, app):
-        """Called by create_app(): connect the engine to the Flask app."""
         self.model_path = app.config["ML_MODEL_PATH"]
         # Store the engine on the app so any code can reach it via get_engine().
         app.extensions["recommendation_engine"] = self
@@ -342,7 +266,6 @@ class RecommendationEngine:
         self.load()
 
     def load(self) -> bool:
-        """Load the saved model from engine.joblib. Returns True if it worked."""
         if not self.model_path or not os.path.exists(self.model_path):
             return False
         try:
@@ -360,7 +283,6 @@ class RecommendationEngine:
         return True
 
     def _save(self):
-        """Save the current model (both the units and the skills parts) to engine.joblib."""
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)  # create ml_models/ if needed
         # Write to a temp file then atomically replace, so a crash never leaves half a model.
         fd, tmp = tempfile.mkstemp(dir=os.path.dirname(self.model_path), suffix=".tmp")
@@ -378,7 +300,6 @@ class RecommendationEngine:
         self.skill_vectorizer = model.get("skill_transformer")
 
     def fitted_at(self) -> datetime | None:
-        """When the current model was fitted (naive UTC, comparable with DB timestamps)."""
         if not self.model:
             return None
         return datetime.fromisoformat(self.model["fitted_at"]).replace(tzinfo=None)
@@ -387,15 +308,6 @@ class RecommendationEngine:
 
     @staticmethod
     def _load_open_opportunities() -> list[dict]:
-        """Open opportunities as plain dicts (the input format of build_model).
-
-        "Open" = status open AND the application deadline hasn't passed (or there is none),
-        the same rule the Browse page uses, so students are never recommended an internship
-        they can no longer apply for. When a deadline passes, the fingerprint changes and the
-        model refits automatically on the next request.
-        Requirements and skills that are INACTIVE are ignored: students can't select
-        them, so they can't be scored.
-        """
         # Imported inside the function so this module can be imported (e.g. by the
         # evaluation script) without needing the Flask app or database.
         from datetime import date
@@ -439,11 +351,6 @@ class RecommendationEngine:
     # ---- UML: updateModel() ---------------------------------------------------------
 
     def update_model(self, opportunities: list[dict] | None = None) -> dict:
-        """Refit BOTH models (units and skills) on all OPEN opportunities and save to disk.
-
-        Called after every opportunity create/edit/close, by `flask seed-data`,
-        by the admin retrain endpoint, and after admin changes to skills/sectors.
-        """
         data = opportunities if opportunities is not None else self._load_open_opportunities()
         self._set_model(build_model(data))
         self._save()
@@ -453,12 +360,6 @@ class RecommendationEngine:
         return self.model
 
     def ensure_fresh(self) -> list[dict]:
-        """Refit if the model is missing or no longer matches the database.
-
-        Safety net: normally the model is refitted after every change, but if a change
-        happened some other way (e.g. directly in phpMyAdmin), the fingerprints differ
-        and we refit here before scoring.
-        """
         data = self._load_open_opportunities()
         if self.model is None or self.model.get("fingerprint") != requirements_fingerprint(data):
             self.update_model(data)
@@ -467,12 +368,6 @@ class RecommendationEngine:
     # ---- validation (TC04) ----------------------------------------------------------
 
     def validate_profile(self, student_id: int) -> dict[int, float]:
-        """Return the latest grade profile as {unit_id: mark}.
-
-        It must hold every ACTIVE catalog unit (all 12) with a mark from 0 to 100.
-        Otherwise IncompleteGradesError is raised. The model vocabulary only ever
-        contains active units, so this also covers everything scoring needs.
-        """
         from app.models import AcademicUnit, GradeProfile
 
         # The student's most recent grade submission (newest date; highest id if same time).
@@ -498,18 +393,11 @@ class RecommendationEngine:
     # ---- UML: rankOpportunities() ---------------------------------------------------
 
     def rank_opportunities(self, results: list[dict]) -> list[dict]:
-        """UML name for rank(); kept so the class matches the diagram."""
         return rank(results)
 
     # ---- UML: generateRecommendations(studentId) ------------------------------------
 
     def _score(self, student_id: int) -> list[dict]:
-        """Validate the profile, then score and rank every open opportunity. Saves NOTHING.
-
-        Shared by generate_recommendations (which then saves the results) and
-        score_student (which only reads them, for the browse/details pages).
-        Raises IncompleteGradesError if the grades are incomplete.
-        """
         from flask import current_app
 
         from app.extensions import db
@@ -541,24 +429,12 @@ class RecommendationEngine:
         return results
 
     def score_student(self, student_id: int) -> dict[int, dict] | None:
-        """Live match results for one student, WITHOUT saving them.
-
-        Returns {opportunity_id: result} (see recommend() for the result fields), or None if
-        the student's profile is incomplete. Used to show match % on browse and details pages.
-        """
         try:
             return {r["opportunity_id"]: r for r in self._score(student_id)}
         except IncompleteGradesError:
             return None
 
     def generate_recommendations(self, student_id: int, commit: bool = True) -> list[dict]:
-        """Validate, score and rank, then replace the student's saved recommendations.
-
-        commit=True  → saves in its own transaction (e.g. the "generate" endpoint).
-        commit=False → only flushes, so the caller can save the student's profile AND the
-                       recommendations in ONE transaction (the profile endpoint does this).
-        Returns the ranked list.
-        """
         from app.extensions import db
         from app.models import Recommendation
 
@@ -600,6 +476,5 @@ class RecommendationEngine:
 
 
 def get_engine() -> RecommendationEngine:
-    """The app's shared engine instance (created in create_app)."""
     from flask import current_app   # the Flask app handling the current request
     return current_app.extensions["recommendation_engine"]
