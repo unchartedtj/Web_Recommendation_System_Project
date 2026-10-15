@@ -65,9 +65,7 @@ def create_user_with_profile(data: dict) -> User:
         raise ApiError(ADMISSION_IN_USE, 409, {"admission_no": ADMISSION_IN_USE})
 
     try:
-        # One transaction: flush() sends the INSERT for users so we get user_id,
-        # but nothing is permanent until commit(). If the role row fails, rollback()
-        # removes the user row too.
+        
         user = User(email=data["email"], role=UserRole(data["role"]))
         user.set_password(data["password"])   # store the hash, never the plain password
         db.session.add(user)
@@ -94,8 +92,8 @@ def serialize_user(user: User) -> dict:
     result = {
         "user_id": user.user_id,
         "email": user.email,
-        "role": user.role.value,              # e.g. "student"
-        "name": user.display_name,            # e.g. "Jane Doe" or "Acme Kenya Ltd"
+        "role": user.role.value,              #  "student,admin or industry_partner"
+        "name": user.display_name,            
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "profile": {},
     }
