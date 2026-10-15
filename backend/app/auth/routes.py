@@ -1,12 +1,3 @@
-"""Auth endpoints: register, login, me.
-
-Each function below handles one URL. The decorator above it says which HTTP method
-and path, e.g. @auth_bp.post("/register") = POST /api/auth/register
-(the /api/auth prefix comes from the blueprint in app/auth/__init__.py).
-
-Routes stay thin on purpose: they read the request, call a validator, call a
-service, and return JSON. The actual rules live in validators.py and services.py.
-"""
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from sqlalchemy import func
@@ -22,13 +13,7 @@ INVALID_CREDENTIALS = "Invalid email or password"
 
 
 def _find_login_user(identifier: str) -> User | None:
-    """Find the account someone is trying to log in to.
-
-    - Contains "@"  → it's an email: look it up in the users table (any role).
-    - No "@"        → it's a USERNAME, which only system admins have: match it against
-                      the admin's name, ignoring upper/lower case (so "Admin" works).
-    Students and partners can't log in by name, only by email.
-    """
+    
     if "@" in identifier:
         return User.query.filter_by(email=identifier).first()
     return (User.query.join(SystemAdmin)                          # only users with an admin row
@@ -47,7 +32,7 @@ def _json_body() -> dict:
 
 @auth_bp.post("/register")
 def register():
-    """Sign up as a student or industry partner."""
+    """Create account  as either a student or industry partner."""
     # 1. Check every field; `errors` is {} if everything is fine.
     data, errors = validate_registration(_json_body())
     if errors:
@@ -61,7 +46,7 @@ def register():
 
 @auth_bp.post("/login")
 def login():
-    """Check email + password and hand back a JWT access token."""
+    """Check email and  password and hand back a JWT access token."""
     data, errors = validate_login(_json_body())
     if errors:
         raise ApiError("Validation failed", 400, errors)
@@ -85,7 +70,7 @@ def login():
 @auth_bp.get("/me")
 @jwt_required()   # rejects the request with 401 unless a valid token is sent
 def me():
-    """Return the logged-in user's details (the React app calls this on page load)."""
+    """Return the logged-in user's details using the React app."""
     # get_jwt_identity() reads the user id we put into the token at login.
     user = db.session.get(User, int(get_jwt_identity()))
     if user is None:  # token is valid but the account was deleted
