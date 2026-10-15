@@ -1,16 +1,8 @@
 
 import re   # regular expressions: patterns for checking text formats
 
-# Email pattern, read left to right:
-#   ^[^@\s]+          name with no @ or spaces              (e.g. "jane.doe")
-#   @                 an @
-#   [^@\s]+           domain with no @ or spaces            (e.g. "strathmore" or "acme.co")
-#   \.(?:ke|com|edu)$ must END in .ke, .com or .edu         (only these 3 are allowed)
-# So jane@strathmore.edu, hr@acme.co.ke, x@strathmore.ac.ke and y@gmail.com are accepted;
-# anything ending in .org, .net, .co.uk etc. is rejected.
-# re.IGNORECASE: "JANE@STRATHMORE.EDU" is accepted too (emails are lowercased anyway).
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.(?:ke|com|edu)$", re.IGNORECASE)
-SELF_REGISTER_ROLES = ("student", "industry_partner")  # create system admin
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.(?:ke|com|edu)$", re.IGNORECASE) #email specifics 
+SELF_REGISTER_ROLES = ("student", "industry_partner")  # create users
 # Fields for  sign-up , and the extra fields per role.
 COMMON_FIELDS = ("email", "password", "confirm_password")
 ROLE_FIELDS = {
@@ -18,14 +10,6 @@ ROLE_FIELDS = {
     "industry_partner": ("organization_name", "contact_person", "phone"),
 }
 
-# Kenyan phone numbers. Spaces and dashes are removed first, so "0712 345 678" counts as
-# "0712345678". Then the number must be one of:
-#   07XXXXXXXX or 01XXXXXXXX            local format: 0 + 7/1 + 8 more digits (10 digits)
-#   2547XXXXXXXX or +2547XXXXXXXX       international: 254 replaces the leading 0
-# Read left to right:
-#   ^(?:0|\+?254)   starts with 0, or 254 (with an optional + in front)
-#   [17]            then a 7 (mobile, e.g. Safaricom) or a 1 (newer prefixes like 0110...)
-#   \d{8}$          then EXACTLY 8 more digits, and nothing after
 PHONE_RE = re.compile(r"^(?:0|\+?254)[17]\d{8}$")
 
 
@@ -56,7 +40,7 @@ def normalize_phone(phone: str) -> str | None:
     # The last 9 digits are the same in every format (e.g. 712345678); put +254 in front.
     return "+254" + compact[-9:]
 
-
+# Password criteria for registration
 def validate_password(password: str) -> str | None:
     if len(password) < 8:
         return "Password must be at least 8 characters"
@@ -65,7 +49,7 @@ def validate_password(password: str) -> str | None:
         return "Password must contain at least one letter and one number"
     return None
 
-
+# Password validation for registration
 def validate_registration(data: dict) -> tuple[dict, dict]:
     """Check a sign-up request. Returns (cleaned data, errors)."""
     errors: dict[str, str] = {}
