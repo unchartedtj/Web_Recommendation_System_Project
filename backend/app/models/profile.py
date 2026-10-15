@@ -1,15 +1,4 @@
-"""Preset lists (skills, sectors) and the link tables that use them.
 
-    skills    ──< opportunity_skills >── internship_opportunities   (skills a partner requires)
-    skills    ──< student_skills     >── students                   (skills a student has)
-    sectors   ──< student_interests  >── students                   (a student's career interests)
-    sectors   ──< internship_opportunities                          (each internship's sector)
-
-Skills and sectors are chosen from these lists (never typed freely), so the
-recommendation engine can compare students and opportunities exactly.
-Items are deactivated (is_active = False) rather than deleted when something still uses them.
-(See the top of placement.py for how to read db.Column / db.relationship.)
-"""
 from app.extensions import db
 
 
