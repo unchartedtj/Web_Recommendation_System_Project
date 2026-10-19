@@ -1,13 +1,4 @@
-"""Academic data: units, a student's submitted grade profile, and individual grades.
 
-How they fit together:
-    Student ──< GradeProfile ──< Grade >── AcademicUnit
-    (one student has many grade profiles; each profile has one grade per unit)
-A new GradeProfile is created each time a student submits grades, so older submissions
-are kept as history. The recommendation engine always uses the LATEST profile.
-
-(See the top of placement.py for how to read db.Column / db.relationship.)
-"""
 from app.extensions import db
 
 

@@ -10,7 +10,7 @@ ROLE_FIELDS = {
     "industry_partner": ("organization_name", "contact_person", "phone"),
 }
 
-PHONE_RE = re.compile(r"^(?:0|\+?254)[17]\d{8}$")
+PHONE_RE = re.compile(r"^(?:0|\+?254)[17]\d{8}$")    #phone no characteristics ie must have digits,start with 0 or +254, followed by 7 or 1, and then 8 more digits 
 
 
 def _clean(value):
@@ -26,14 +26,8 @@ def validate_email(email: str) -> str | None:
     return None
 
 
-def normalize_phone(phone: str) -> str | None:
-    """Return the phone in one standard format (+2547XXXXXXXX), or None if it isn't valid.
-
-    Examples:  "0712 345 678"     → "+254712345678"
-               "254-712-345678"   → "+254712345678"
-               "07123456789"      → None   (one digit too many)
-    Storing one format means the same number always looks the same in the database.
-    """
+def normalize_phone(phone: str) -> str | None: #normalize phone numbers to standard format (+2547XXXXXXXX)
+   
     compact = re.sub(r"[\s-]", "", phone)   # remove spaces and dashes
     if not PHONE_RE.match(compact):
         return None

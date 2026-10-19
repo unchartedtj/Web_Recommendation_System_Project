@@ -55,7 +55,7 @@ def test_tc07_profile_pointing_to_software_ranks_it_first(client, student_token,
     assert [r["rank"] for r in recs] == [1, 2, 3, 4, 5]
     top = recs[0]
     assert top["title"] == "Software Development Intern"
-    assert top["organization"] == "TechCorp Kenya (Demo)"
+    assert top["organization"] == "TechCorp Kenya"
     assert top["sector"] == "Software Development"
     assert top["interest_match"] is True
     assert top["missing_essential_skills"] == []
@@ -166,7 +166,7 @@ def test_get_before_profile_is_empty(client, student_token):
 def test_get_regenerates_after_the_model_changes(client, student_token, profile_body):
     save_profile(client, student_token, profile_body(**SWE_PROFILE))
     # A partner closes an opportunity → the model is refitted → saved results are out of date.
-    netsecure = login(client, "netsecure.demo@wbl.local", DEMO_PASSWORD)
+    netsecure = login(client, "info@netsecure.co.ke", DEMO_PASSWORD)
     net = InternshipOpportunity.query.filter_by(title="Networking & IT Support Intern").one()
     # Timestamps are stored to the second, so backdate the saved results to make sure the
     # refit below is clearly newer than them.

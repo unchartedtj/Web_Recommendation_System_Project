@@ -73,14 +73,14 @@ DEFAULT_ADMIN = {
 # key -> account details; opportunities below refer to partners by key.
 PARTNERS = {
     "techcorp": {
-        "email": "techcorp.demo@wbl.local",
-        "organization_name": "TechCorp Kenya (Demo)",
+        "email": "info@techcorp.co.ke",
+        "organization_name": "TechCorp Kenya",
         "contact_person": "Grace Wanjiku",
         "phone": "+254 700 111 222",
     },
     "netsecure": {
-        "email": "netsecure.demo@wbl.local",
-        "organization_name": "NetSecure Ltd (Demo)",
+        "email": "info@netsecure.co.ke",
+        "organization_name": "NetSecure Ltd",
         "contact_person": "Brian Otieno",
         "phone": "+254 700 333 444",
     },
@@ -92,8 +92,8 @@ PARTNERS = {
 # profile=None → an account with no profile yet, to show the empty states.
 DEMO_STUDENTS = [
     {
-        "email": "student.software@wbl.local", "admission_no": "900001",
-        "first_name": "Sam", "last_name": "Software", "course": "BBIT", "year_of_study": 3,
+        "email": "samuel.kamau@strathmore.edu", "admission_no": "900001",
+        "first_name": "Samuel", "last_name": "Kamau", "course": "BBIT", "year_of_study": 3,
         # TC07: strongest in the Software Development units → Software Development Intern #1.
         "profile": {
             "marks": {"Object Oriented Programming": 90, "Data Structures and Algorithms": 88,
@@ -103,8 +103,8 @@ DEMO_STUDENTS = [
         },
     },
     {
-        "email": "student.data@wbl.local", "admission_no": "900002",
-        "first_name": "Dana", "last_name": "Data", "course": "BBIT", "year_of_study": 3,
+        "email": "diana.wanjiru@strathmore.edu", "admission_no": "900002",
+        "first_name": "Diana", "last_name": "Wanjiru", "course": "BBIT", "year_of_study": 3,
         # Strong in statistics and databases. OOP 52 is below the Software Development
         # essential minimum (60), so that internship appears under "Below minimum".
         "profile": {
@@ -115,8 +115,8 @@ DEMO_STUDENTS = [
         },
     },
     {
-        "email": "student.new@wbl.local", "admission_no": "900003",
-        "first_name": "Nia", "last_name": "New", "course": "BBIT", "year_of_study": 2,
+        "email": "kevin.mwangi@strathmore.edu", "admission_no": "900003",
+        "first_name": "Kevin", "last_name": "Mwangi", "course": "BBIT", "year_of_study": 2,
         "profile": None,
     },
 ]

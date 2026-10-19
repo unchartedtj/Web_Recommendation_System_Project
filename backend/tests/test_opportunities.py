@@ -39,13 +39,13 @@ def partner_token(client, seeded, partner_payload):
 def other_partner_token(client, seeded):
     """A DIFFERENT partner (the seeded TechCorp demo account). Used to prove one
     partner can't touch another partner's opportunities."""
-    return login(client, "techcorp.demo@wbl.local", DEMO_PASSWORD)
+    return login(client, "info@techcorp.co.ke", DEMO_PASSWORD)
 
 
 @pytest.fixture
 def netsecure_token(client, seeded):
     """The seeded NetSecure demo partner, which owns the Networking opportunity."""
-    return login(client, "netsecure.demo@wbl.local", DEMO_PASSWORD)
+    return login(client, "info@netsecure.co.ke", DEMO_PASSWORD)
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_browse_shows_open_opportunities_with_requirements(client, student_token
     assert len(opps) == 5   # the 5 seeded demo opportunities, all open
     # Pick out the Software Development one and check its details.
     swe = next(o for o in opps if o["title"] == "Software Development Intern")
-    assert swe["organization_name"] == "TechCorp Kenya (Demo)"
+    assert swe["organization_name"] == "TechCorp Kenya"
     # Turn its requirements into {unit name: (importance, min mark)} and compare.
     assert {r["unit_name"]: (r["importance"], r["min_mark"]) for r in swe["requirements"]} == {
         "Object Oriented Programming": ("essential", 60.0),

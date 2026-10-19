@@ -1,19 +1,4 @@
-"""Opportunities, their requirements, recommendations, applications and placements.
 
-How to read a model class:
-- Each class = one database table (__tablename__ gives the table name).
-- Each db.Column = one column. primary_key = the row's unique id;
-  db.ForeignKey("table.column") = this column points at a row in another table.
-- ondelete="CASCADE" → if the referenced row is deleted, MySQL deletes this row too.
-- nullable=False → the column must have a value (NOT NULL).
-- default=... is filled in by Python; server_default=... is filled in by MySQL itself.
-- db.relationship(...) is NOT a column. It lets Python code follow links between tables,
-  e.g. opportunity.partner or opportunity.precursors, without writing SQL joins.
-  back_populates names the matching relationship on the other class.
-
-Application/placement status columns are plain strings (not DB enums) so new states can be
-added later without a migration. Opportunity status is limited to open/closed by a CHECK.
-"""
 from app.extensions import db
 
 

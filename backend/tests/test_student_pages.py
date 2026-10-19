@@ -2,9 +2,9 @@
 (the "my_match" block), the eligible / not-eligible split, and the 3 demo students.
 
 These use `seeded_with_students`, i.e. everything `flask seed-data` creates, including:
-    student.software@wbl.local  – complete profile pointing at Software Development (TC07)
-    student.data@wbl.local      – complete profile; below the Software Development OOP minimum
-    student.new@wbl.local       – no profile yet
+    samuel.kamau@strathmore.edu   – complete profile pointing at Software Development (TC07)
+    diana.wanjiru@strathmore.edu  – complete profile; below the Software Development OOP minimum
+    kevin.mwangi@strathmore.edu   – no profile yet
 """
 from datetime import date, timedelta
 
@@ -21,9 +21,10 @@ BROWSE = "/api/opportunities"
 @pytest.fixture
 def tokens(client, seeded_with_students):
     """Logged-in tokens for the demo students and a demo partner."""
-    return {name: login(client, f"student.{name}@wbl.local", DEMO_PASSWORD)
-            for name in ("software", "data", "new")} | {
-        "partner": login(client, "techcorp.demo@wbl.local", DEMO_PASSWORD)}
+    emails = {"software": "samuel.kamau@strathmore.edu", "data": "diana.wanjiru@strathmore.edu",
+              "new": "kevin.mwangi@strathmore.edu"}
+    return {name: login(client, email, DEMO_PASSWORD) for name, email in emails.items()} | {
+        "partner": login(client, "info@techcorp.co.ke", DEMO_PASSWORD)}
 
 
 def browse(client, token, **params):
