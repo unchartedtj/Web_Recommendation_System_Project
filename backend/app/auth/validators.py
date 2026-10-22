@@ -28,7 +28,7 @@ def validate_email(email: str) -> str | None:
 
 def normalize_phone(phone: str) -> str | None: #normalize phone numbers to standard format (+2547XXXXXXXX)
    
-    compact = re.sub(r"[\s-]", "", phone)   # remove spaces and dashes
+    compact = re.sub(r"[\s-]", "", phone)   # remove spaces and dashes from phone num
     if not PHONE_RE.match(compact):
         return None
     # The last 9 digits are the same in every format (e.g. 712345678); put +254 in front.
