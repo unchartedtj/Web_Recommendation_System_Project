@@ -2,7 +2,7 @@
  * "My Opportunities" page (/partner): the partner dashboard home.
  *
  * Loads the partner's own opportunities from the API and shows them in a table,
- * with Edit and Close buttons on each row.
+ * with applicant counts, slots filled, and View candidates / Edit / Close buttons on each row.
  */
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -101,7 +101,8 @@ export default function MyOpportunities() {
                 <th>Opportunity</th>
                 <th>Status</th>
                 <th>Deadline</th>
-                <th>Slots</th>
+                <th>Applicants</th>
+                <th>Slots filled</th>
                 <th>Requirements</th>
                 <th>Skills</th>
                 <th aria-label="Actions" />
@@ -121,10 +122,19 @@ export default function MyOpportunities() {
                     <span className={`badge badge--${o.status}`}>{o.status}</span>
                   </td>
                   <td data-label="Deadline">{o.application_deadline ?? '—'}</td>
-                  <td data-label="Slots">{o.slots}</td>
+                  <td data-label="Applicants">
+                    {o.applicants ?? 0}
+                    {o.application_counts?.pending > 0 && (
+                      <div className="muted small">{o.application_counts.pending} pending</div>
+                    )}
+                  </td>
+                  <td data-label="Slots filled">{o.slots_filled ?? 0}/{o.slots}</td>
                   <td data-label="Requirements"><RequirementChips requirements={o.requirements} /></td>
                   <td data-label="Skills"><SkillChips skills={o.skills ?? []} /></td>
                   <td className="actions">
+                    <Link className="btn btn--primary btn--sm" to={`/partner/opportunities/${o.opportunity_id}/candidates`}>
+                      View candidates
+                    </Link>
                     <Link className="btn btn--secondary btn--sm" to={`/partner/opportunities/${o.opportunity_id}/edit`}>
                       Edit
                     </Link>
