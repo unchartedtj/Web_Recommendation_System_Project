@@ -37,8 +37,18 @@ from app.opportunities.services import (active_sector_ids, active_skill_ids, act
                                         serialize_opportunity, serialize_unit,
                                         skills_by_category)
 from app.opportunities.validators import validate_opportunity
+from app.applications.services import status_counts, student_application_lookup
 
 PARTNER = "industry_partner"
+
+
+def _application_lookup():
+    """For a student: ({opportunity_id: {application_id, status}}, has_placement).
+    For anyone else: ({}, False)."""
+    if get_jwt().get("role") != "student":
+        return {}, False
+    student = current_user().student
+    return student_application_lookup(student) if student else ({}, False)
 
 
 def _json_body() -> dict:
@@ -177,9 +187,11 @@ def browse_opportunities():
                                InternshipOpportunity.opportunity_id.desc())
     rows = query.all()
 
+    applied, placed = _application_lookup()
     items = []
     for o in rows:
         item = serialize_opportunity(o)
+        item["my_application"] = applied.get(o.opportunity_id)
         if context:
             match = context[1].get(o.opportunity_id)
             if match:
@@ -192,7 +204,8 @@ def browse_opportunities():
         # The engine's own order: eligible first, then by match score.
         items.sort(key=lambda i: i.get("match_rank", 10**6))
 
-    return jsonify({"opportunities": items, "sort": sort, "profile_complete": context is not None})
+    return jsonify({"opportunities": items, "sort": sort, "profile_complete": context is not None,
+                    "has_placement": placed})
 
 
 # <int:opportunity_id> captures the number in the URL and passes it to the function.
@@ -208,7 +221,9 @@ def view_opportunity(opportunity_id):
     if o is None or o.status != OpportunityStatus.OPEN:
         raise ApiError("Opportunity not found", 404)
 
-    body = {"opportunity": serialize_opportunity(o), "profile_complete": False}
+    applied, placed = _application_lookup()
+    body = {"opportunity": serialize_opportunity(o), "profile_complete": False,
+            "my_application": applied.get(o.opportunity_id), "has_placement": placed}
     context = _student_context()
     if context:
         _student, matches, marks, skill_ids = context
@@ -243,7 +258,15 @@ def my_opportunities():
     rows = (InternshipOpportunity.query.filter_by(partner_id=current_partner().partner_id)
             .order_by(InternshipOpportunity.date_posted.desc(),
                       InternshipOpportunity.opportunity_id.desc()).all())
-    return jsonify({"opportunities": [serialize_opportunity(o) for o in rows]})
+    counts = status_counts([o.opportunity_id for o in rows])
+    items = []
+    for o in rows:
+        item = serialize_opportunity(o)
+        item["application_counts"] = counts[o.opportunity_id]
+        item["applicants"] = sum(counts[o.opportunity_id].values())
+        item["slots_filled"] = counts[o.opportunity_id]["accepted"]
+        items.append(item)
+    return jsonify({"opportunities": items})
 
 
 @opportunities_bp.get("/partner/opportunities/<int:opportunity_id>")
