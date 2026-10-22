@@ -36,6 +36,7 @@ export default function RecommendationCard({ rec, rank, isTop = false, from }) {
           <div className="rec-card__tags">
             <StatusBadge eligible={rec.meets_requirements} />
             {rec.interest_match && <span className="tag tag--interest">♥ Interest match</span>}
+            {rec.my_application && <span className="tag tag--applied">✓ Applied</span>}
           </div>
         </div>
         <div className="rec-card__score" aria-label={`Match ${Math.round(rec.match_percent)} percent`}>
