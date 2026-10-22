@@ -41,7 +41,12 @@ export default function OpportunityCard({ opp, from }) {
         ))}
         {extraSkills > 0 && <span className="muted small">+{extraSkills} more</span>}
       </div>
-      {hasMatch && <div className="opp-card__badge"><StatusBadge eligible={opp.meets_requirements} /></div>}
+      {(hasMatch || opp.my_application) && (
+        <div className="opp-card__badge">
+          {hasMatch && <StatusBadge eligible={opp.meets_requirements} />}
+          {opp.my_application && <span className="tag tag--applied">✓ Applied</span>}
+        </div>
+      )}
     </Link>
   );
 }
