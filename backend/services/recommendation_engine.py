@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib      # SHA-256 hashing, used for the "is the model stale?" fingerprint
+import hashlib      # SHA-256 hashing
 import json         # turn Python data into text so it can be hashed
 import logging      # write info/warning messages to the server log
 import os           # file paths and file operations
