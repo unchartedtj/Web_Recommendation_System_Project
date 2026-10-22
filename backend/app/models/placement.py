@@ -130,9 +130,35 @@ class Recommendation(db.Model):
     opportunity = db.relationship("InternshipOpportunity", back_populates="recommendations")
 
 
+class ApplicationStatus:
+    """Allowed values for Application.status."""
+    PENDING = "pending"
+    SHORTLISTED = "shortlisted"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+    ALL = (PENDING, SHORTLISTED, ACCEPTED, REJECTED, WITHDRAWN)
+    ACTIVE = (PENDING, SHORTLISTED)          # still being considered
+    FINAL = (ACCEPTED, REJECTED, WITHDRAWN)  # can never change again
+
+
+class PlacementStatus:
+    """Allowed values for PlacementRecord.status."""
+    CONFIRMED = "confirmed"
+    ONGOING = "ongoing"
+    COMPLETED = "completed"
+    TERMINATED = "terminated"
+    ALL = (CONFIRMED, ONGOING, COMPLETED, TERMINATED)
+
+
 class Application(db.Model):
-    """A student's application to an opportunity (used in a later step)."""
+    """A student's application to an opportunity, with their match frozen at apply time."""
     __tablename__ = "applications"
+    # One application per student per opportunity (no re-applying after withdrawing).
+    __table_args__ = (
+        db.UniqueConstraint("student_id", "opportunity_id",
+                            name="uq_applications_student_opportunity"),
+    )
 
     application_id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("students.student_id", ondelete="CASCADE"),
@@ -141,7 +167,19 @@ class Application(db.Model):
                                db.ForeignKey("internship_opportunities.opportunity_id"),
                                nullable=False, index=True)
     application_date = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
-    status = db.Column(db.String(20), nullable=False, default="pending", server_default="pending")
+    status = db.Column(db.Enum(*ApplicationStatus.ALL, name="application_status"),
+                       nullable=False, default=ApplicationStatus.PENDING,
+                       server_default=ApplicationStatus.PENDING)
+    motivation_note = db.Column(db.Text)                 # optional, max 500 characters
+    # The student's marks, skills, interests and match breakdown when they applied.
+    # Frozen: later profile changes don't alter what the partner sees.
+    profile_snapshot = db.Column(db.JSON)
+    match_score_at_apply = db.Column(db.Float)
+    meets_requirements_at_apply = db.Column(db.Boolean)
+    status_reason = db.Column(db.String(255))            # e.g. "All positions filled"
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(),
+                           onupdate=db.func.now())
+    decided_at = db.Column(db.DateTime)                  # when it reached a final status
 
     student = db.relationship("Student", back_populates="applications")
     opportunity = db.relationship("InternshipOpportunity", back_populates="applications")
@@ -151,8 +189,11 @@ class Application(db.Model):
 
 
 class PlacementRecord(db.Model):
-    """A confirmed placement: which student is at which internship, and when (later step)."""
+    """A placement: created when a partner accepts an application."""
     __tablename__ = "placement_records"
+    __table_args__ = (
+        db.UniqueConstraint("application_id", name="uq_placement_records_application"),
+    )
 
     placement_id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("students.student_id"),
@@ -162,9 +203,12 @@ class PlacementRecord(db.Model):
                                nullable=False, index=True)
     application_id = db.Column(db.Integer, db.ForeignKey("applications.application_id"),
                                nullable=False, index=True)
-    status = db.Column(db.String(20), nullable=False, default="ongoing", server_default="ongoing")
+    status = db.Column(db.Enum(*PlacementStatus.ALL, name="placement_status"),
+                       nullable=False, default=PlacementStatus.CONFIRMED,
+                       server_default=PlacementStatus.CONFIRMED)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
     student = db.relationship("Student", back_populates="placement_records")
     opportunity = db.relationship("InternshipOpportunity", back_populates="placement_records")
