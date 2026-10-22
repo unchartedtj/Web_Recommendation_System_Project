@@ -121,6 +121,20 @@ DEMO_STUDENTS = [
     },
 ]
 
+# Demo applications, created through the real apply() rules (no placements: those are made
+# by a partner accepting). (student email, opportunity key, status, note, below-minimum ok?)
+DEMO_APPLICATIONS = [
+    ("samuel.kamau@strathmore.edu", "SWE", "pending",
+     "I enjoy building Java applications and would love to grow as a developer on your team.",
+     False),
+    ("diana.wanjiru@strathmore.edu", "DATA", "shortlisted",
+     "Data analysis is my passion. I have used Python, SQL and Power BI in class projects.",
+     False),
+    ("diana.wanjiru@strathmore.edu", "SWE", "pending",
+     "I know my OOP mark is below your minimum, but I am improving my programming skills.",
+     True),
+]
+
 E, D = "essential", "desirable"
 
 # Requirements: (unit_name, importance, min_mark or None).
