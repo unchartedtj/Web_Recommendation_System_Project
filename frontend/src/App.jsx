@@ -9,11 +9,13 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import Login from './pages/Login.jsx';
+import Candidates from './pages/partner/Candidates.jsx';
 import MyOpportunities from './pages/partner/MyOpportunities.jsx';
 import OpportunityEditor from './pages/partner/OpportunityEditor.jsx';
 import Register from './pages/Register.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import BrowseOpportunities from './pages/student/BrowseOpportunities.jsx';
+import MyApplications from './pages/student/MyApplications.jsx';
 import OpportunityDetails from './pages/student/OpportunityDetails.jsx';
 import StudentProfile from './pages/student/StudentProfile.jsx';
 import StudentRecommendations from './pages/student/StudentRecommendations.jsx';
@@ -40,6 +42,7 @@ export default function App() {
         <Route path="/student/recommendations" element={<StudentRecommendations />} />
         <Route path="/student/opportunities" element={<BrowseOpportunities />} />
         <Route path="/student/opportunities/:id" element={<OpportunityDetails />} />
+        <Route path="/student/applications" element={<MyApplications />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLES.PARTNER]} />}>
         {/* The partner dashboard home is the "My Opportunities" list. */}
@@ -47,6 +50,7 @@ export default function App() {
         <Route path="/partner/opportunities/new" element={<OpportunityEditor />} />
         {/* ":id" is a URL parameter, e.g. /partner/opportunities/7/edit gives id = "7". */}
         <Route path="/partner/opportunities/:id/edit" element={<OpportunityEditor />} />
+        <Route path="/partner/opportunities/:id/candidates" element={<Candidates />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
         <Route path="/admin" element={<AdminDashboard />} />
