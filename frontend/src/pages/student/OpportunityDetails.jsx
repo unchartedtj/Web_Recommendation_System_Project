@@ -10,7 +10,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { parseApiError } from '../../api/client.js';
 import { fetchOpportunity } from '../../api/student.js';
+import ApplyArea from '../../components/student/ApplyArea.jsx';
 import StudentLayout from '../../components/student/StudentLayout.jsx';
+import Toast from '../../components/ui/Toast.jsx';
 import UnitComparisonTable from '../../components/student/UnitComparisonTable.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
@@ -41,6 +43,15 @@ export default function OpportunityDetails() {
       });
   }, [id]);
   useEffect(load, [load]);
+
+  const [toast, setToast] = useState('');
+  const clearToast = useCallback(() => setToast(''), []);
+  // After applying: show "Applied: Pending" straight away, without reloading the page.
+  const handleApplied = (application) => {
+    setData((d) => ({ ...d, my_application: { application_id: application.application_id,
+      status: application.status } }));
+    setToast('Application submitted');
+  };
 
   const goBack = () => navigate(location.state?.from ?? '/student/opportunities');
   const backLabel = location.state?.from?.startsWith('/student/recommendations')
@@ -121,14 +132,11 @@ export default function OpportunityDetails() {
               </section>
             )}
 
-            {/* ============================================================
-                APPLY BUTTON PLACEHOLDER: built in the next step (applications).
-                Do not show a button here yet.
-               ============================================================ */}
-            <div className="apply-slot" data-slot="apply" />
+            <ApplyArea data={data} onApplied={handleApplied} />
           </aside>
         </div>
       )}
+      <Toast message={toast} onDone={clearToast} />
     </StudentLayout>
   );
 }
