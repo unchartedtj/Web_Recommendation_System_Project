@@ -17,6 +17,7 @@ from app.recommendations import recommendations_bp
 from app.recommendations.services import (latest_marks, match_details, profile_is_complete,
                                           student_skill_ids)
 from services.recommendation_engine import IncompleteGradesError, get_engine
+from app.applications.services import student_application_lookup
 
 STUDENT, ADMIN = "student", "system_admin"
 
@@ -110,10 +111,12 @@ def saved_recommendations():
 
     # Add the "Why this match?" comparison (the student's marks and skills vs requirements).
     skill_ids = student_skill_ids(student)
+    applied, placed = student_application_lookup(student)
     items = []
     for r in rows:
         item = serialize_recommendation(r)
         item.update(match_details(r.opportunity, marks, skill_ids))
+        item["my_application"] = applied.get(r.opportunity_id)
         items.append(item)
     # Best score first within each list (rank breaks exact ties the engine's way).
     by_score = lambda i: (-i["match_score"], i["rank"])     # noqa: E731
@@ -124,6 +127,7 @@ def saved_recommendations():
         "profile_updated_at": (student.profile_updated_at.isoformat() + "Z"
                                if student.profile_updated_at else None),
         "profile_complete": profile_complete,
+        "has_placement": placed,
         "eligible": sorted([i for i in items if i["meets_requirements"]], key=by_score),
         "not_eligible": sorted([i for i in items if not i["meets_requirements"]], key=by_score),
     })
