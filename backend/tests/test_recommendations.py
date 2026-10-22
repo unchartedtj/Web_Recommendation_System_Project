@@ -160,7 +160,7 @@ def test_get_returns_saved_snapshot(client, student_token, profile_body):
 def test_get_before_profile_is_empty(client, student_token):
     body = client.get(SAVED, headers=auth_header(student_token)).get_json()
     assert body == {"generated_at": None, "profile_updated_at": None, "profile_complete": False,
-                    "eligible": [], "not_eligible": []}
+                    "has_placement": False, "eligible": [], "not_eligible": []}
 
 
 def test_get_regenerates_after_the_model_changes(client, student_token, profile_body):
