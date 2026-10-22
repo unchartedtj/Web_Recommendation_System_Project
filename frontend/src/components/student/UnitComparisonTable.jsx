@@ -4,7 +4,7 @@
  * Without a profile (units have no my_mark), the last two columns are left out.
  * Each ✓/✗ also has text for screen readers ("met" / "not met").
  */
-export default function UnitComparisonTable({ units, showMine = true }) {
+export default function UnitComparisonTable({ units, showMine = true, mineLabel = 'Your mark' }) {
   return (
     <table className="table unit-table">
       <thead>
@@ -12,7 +12,7 @@ export default function UnitComparisonTable({ units, showMine = true }) {
           <th>Unit</th>
           <th>Importance</th>
           <th>Min mark</th>
-          {showMine && <th>Your mark</th>}
+          {showMine && <th>{mineLabel}</th>}
           {showMine && <th aria-label="Requirement met?" />}
         </tr>
       </thead>
@@ -24,7 +24,7 @@ export default function UnitComparisonTable({ units, showMine = true }) {
               {u.importance === 'essential' ? 'Essential' : 'Desirable'}
             </td>
             <td data-label="Min mark">{u.min_mark ?? '—'}</td>
-            {showMine && <td data-label="Your mark">{u.my_mark ?? '—'}</td>}
+            {showMine && <td data-label={mineLabel}>{u.my_mark ?? '—'}</td>}
             {showMine && (
               <td data-label="Met?" className={u.met ? 'tick' : 'cross'}>
                 <span aria-hidden="true">{u.met ? '✓' : '✗'}</span>
