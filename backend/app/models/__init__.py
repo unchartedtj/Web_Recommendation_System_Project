@@ -6,10 +6,12 @@ instead of remembering which file each class lives in.
 from app.models.academic import AcademicUnit, Grade, GradeProfile
 from app.models.placement import (
     Application,
+    ApplicationStatus,
     InternshipOpportunity,
     OpportunityPrecursor,
     OpportunityStatus,
     PlacementRecord,
+    PlacementStatus,
     Recommendation,
     RequirementImportance,
 )
@@ -21,6 +23,6 @@ __all__ = [
     "User", "UserRole", "Student", "IndustryPartner", "SystemAdmin",
     "AcademicUnit", "GradeProfile", "Grade",
     "InternshipOpportunity", "OpportunityPrecursor", "Recommendation",
-    "Application", "PlacementRecord",
+    "Application", "ApplicationStatus", "PlacementRecord", "PlacementStatus",
     "Skill", "Sector", "OpportunitySkill", "StudentSkill", "StudentInterest",
 ]
