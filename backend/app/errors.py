@@ -29,16 +29,19 @@ class ApiError(Exception):
     doesn't have to build error responses by hand.
     """
 
-    def __init__(self, message: str, status_code: int = 400, fields: dict | None = None):
+    def __init__(self, message: str, status_code: int = 400, fields: dict | None = None,
+                 extra: dict | None = None):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
         self.fields = fields or {}
+        self.extra = extra or {}   # optional extra keys, e.g. {"unmet_requirements": [...]}
 
 
-def error_response(message: str, status_code: int, fields: dict | None = None):
+def error_response(message: str, status_code: int, fields: dict | None = None,
+                   extra: dict | None = None):
     """Build the (JSON body, status code) pair Flask sends back."""
-    return jsonify({"error": message, "fields": fields or {}}), status_code
+    return jsonify({**(extra or {}), "error": message, "fields": fields or {}}), status_code
 
 
 def register_error_handlers(app):
@@ -47,7 +50,7 @@ def register_error_handlers(app):
     @app.errorhandler(ApiError)
     def handle_api_error(err: ApiError):
         # Our own errors: use their message, status and field errors as they are.
-        return error_response(err.message, err.status_code, err.fields)
+        return error_response(err.message, err.status_code, err.fields, err.extra)
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(err: HTTPException):
