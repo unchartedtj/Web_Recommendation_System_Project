@@ -70,6 +70,7 @@ def register_cli(app: Flask):
         click.echo("  Demo partner logins (password: " + DEMO_PASSWORD + "):")
         for email in summary["partners"]:
             click.echo(f"    - {email}")
+        click.echo(f"  Demo applications:   {summary['applications']} created this run")
         click.echo("  Demo student logins (password: " + DEMO_PASSWORD + "):")
         for email in summary["students"]:
             click.echo(f"    - {email}")
