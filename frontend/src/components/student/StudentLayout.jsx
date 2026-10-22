@@ -1,7 +1,8 @@
 /**
  * Page shell for every student page: a top navbar + the page content.
  *
- * Navbar links: Dashboard · Recommendations · Browse Internships · My Profile · Logout.
+ * Navbar links: Dashboard · Recommendations · Browse Internships · My Applications ·
+ * My Profile · Logout.
  * The current page is highlighted (NavLink adds class "active"). On small screens
  * (< 760px) the links collapse behind a "Menu" button.
  */
@@ -13,6 +14,7 @@ const LINKS = [
   { to: '/student', label: 'Dashboard', end: true },
   { to: '/student/recommendations', label: 'Recommendations' },
   { to: '/student/opportunities', label: 'Browse Internships' },
+  { to: '/student/applications', label: 'My Applications' },
   { to: '/student/profile', label: 'My Profile' },
 ];
 
