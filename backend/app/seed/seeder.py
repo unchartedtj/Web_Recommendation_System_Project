@@ -16,7 +16,8 @@ from datetime import date, datetime, timedelta, timezone
 
 from app.auth.services import create_user_with_profile
 from app.extensions import db
-from app.models import (AcademicUnit, Grade, GradeProfile, InternshipOpportunity,
+from app.models import (AcademicUnit, Application, ApplicationStatus, Grade, GradeProfile,
+                        InternshipOpportunity,
                         OpportunityPrecursor, OpportunitySkill, OpportunityStatus, Sector, Skill,
                         StudentInterest, StudentSkill, User)
 from app.seed import catalog
@@ -193,10 +194,49 @@ def _prune_demo_opportunities(partners: dict) -> int:
     for partner_id, titles in titles_by_partner.items():
         for opp in InternshipOpportunity.query.filter_by(partner_id=partner_id):
             if opp.title not in titles:
-                db.session.delete(opp)
+                if opp.applications:
+                    # Students applied to it: keep the history, just close it.
+                    opp.status = OpportunityStatus.CLOSED
+                else:
+                    db.session.delete(opp)
                 removed += 1
     db.session.flush()
     return removed
+
+
+def _seed_demo_applications() -> int:
+    """Create the demo applications with the real apply() rules. Safe to re-run: skips any
+    that already exist, students with a placement, and closed/expired opportunities.
+    Returns how many were created."""
+    from app.applications.services import apply, has_placement
+    from app.errors import ApiError
+
+    by_key = {spec["key"]: spec for spec in catalog.OPPORTUNITIES}
+    created = 0
+    for email, key, status, note, below_minimum_ok in catalog.DEMO_APPLICATIONS:
+        user = User.query.filter_by(email=email).first()
+        spec = by_key[key]
+        partner = User.query.filter_by(email=catalog.PARTNERS[spec["partner"]]["email"]).first()
+        if user is None or user.student is None or partner is None:
+            continue
+        student = user.student
+        opp = InternshipOpportunity.query.filter_by(
+            partner_id=partner.industry_partner.partner_id, title=spec["title"]).first()
+        if opp is None or has_placement(student.student_id):
+            continue
+        if Application.query.filter_by(student_id=student.student_id,
+                                       opportunity_id=opp.opportunity_id).first():
+            continue                                     # already applied (re-run)
+        try:
+            application = apply(student, opp.opportunity_id, note=note,
+                                acknowledge_below_minimum=below_minimum_ok)
+        except ApiError:
+            continue                                     # e.g. closed or past its deadline
+        if status == ApplicationStatus.SHORTLISTED:
+            application.status = ApplicationStatus.SHORTLISTED
+            db.session.commit()
+        created += 1
+    return created
 
 
 def _prune_units() -> tuple[int, int]:
@@ -252,7 +292,10 @@ def seed_all(include_demo_students: bool = True) -> dict:
     # Give the demo students with a profile fresh recommendations.
     for student_id in demo_student_ids:
         engine.generate_recommendations(student_id)
+    # Demo applications need the fitted model (each one stores a match snapshot).
+    applications = _seed_demo_applications() if include_demo_students else 0
     return {
+        "applications": applications,
         "units": len(catalog.UNITS),
         "partners": [p["email"] for p in catalog.PARTNERS.values()],
         "students": [s["email"] for s in catalog.DEMO_STUDENTS],
