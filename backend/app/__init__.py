@@ -40,6 +40,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     from app.recommendations import recommendations_bp
     from app.students import students_bp
     from app.admin import admin_bp
+    from app.applications import applications_bp
 
     # A "blueprint" is a group of related routes. Registering it switches those routes on.
     app.register_blueprint(auth_bp)               # /api/auth/...
@@ -47,6 +48,7 @@ def create_app(config_class=DevelopmentConfig) -> Flask:
     app.register_blueprint(recommendations_bp)    # /api/recommendations, /api/admin/model/retrain
     app.register_blueprint(students_bp)           # /api/student/profile
     app.register_blueprint(admin_bp)              # /api/admin/skills, /api/admin/sectors
+    app.register_blueprint(applications_bp)       # /api/applications, /api/partner/.../candidates
     register_error_handlers(app)                  # turn every error into {"error", "fields"} JSON
     register_cli(app)                             # `flask create-admin`, `flask seed-data`
 
