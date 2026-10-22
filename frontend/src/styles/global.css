@@ -492,3 +492,93 @@ a.btn--primary { text-decoration: none; display: inline-block; }
 .skeleton__line--short { width: 35%; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton__line { animation: none; } }
+
+/* ==========================================================================
+   Applications, placements and candidates
+   ========================================================================== */
+.capitalize { text-transform: capitalize; }
+.alert--warn { background: #fff3e0; color: #7a3d00; border: 1px solid #ffcc80; }
+.alert--warn ul { margin: 0.4rem 0 0.6rem; padding-left: 1.2rem; }
+.tag--applied { background: #e3f2fd; color: var(--blue); }
+
+/* Pop-up dialog */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); display: flex;
+  align-items: flex-end; justify-content: center; z-index: 50; padding: 0; }
+.modal { background: var(--surface); width: 100%; max-height: 90vh; overflow-y: auto;
+  border-radius: var(--radius) var(--radius) 0 0; padding: 1.25rem 1rem; }
+.modal__title { font-size: 1.2rem; margin: 0 0 0.75rem; }
+.modal__body textarea, .modal__body input[type="date"] { width: 100%; }
+.modal__footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.apply-modal__match { display: grid; gap: 0.5rem; margin-bottom: 1rem; justify-items: start; }
+.apply-modal__match .match-bar { width: 100%; }
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; padding: 1rem; }
+  .modal { max-width: 520px; border-radius: var(--radius); padding: 1.5rem; }
+}
+
+/* Toast */
+.toast { position: fixed; bottom: 1rem; left: 1rem; right: 1rem; z-index: 60; background: var(--success);
+  color: #fff; padding: 0.75rem 1rem; border-radius: var(--radius); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+@media (min-width: 640px) { .toast { left: auto; max-width: 360px; } }
+
+/* Application status pills (icon + text, never colour alone) */
+.app-status { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.6rem;
+  border-radius: 999px; font-size: 0.82rem; font-weight: 600; border: 1px solid transparent; }
+.app-status--pending { background: #eceff4; color: #3c4658; border-color: #cfd6e3; }
+.app-status--shortlisted { background: #e3f2fd; color: var(--blue); border-color: #90caf9; }
+.app-status--accepted { background: var(--success-bg); color: var(--success); border-color: #a5d6a7; }
+.app-status--rejected { background: var(--error-bg); color: var(--error); border-color: #ef9a9a; }
+.app-status--withdrawn { background: #f3f3f3; color: #555; border-color: #ddd; }
+
+/* Apply area on the details page */
+.apply-area h2 { font-size: 1.1rem; margin-top: 0; }
+.apply-area__status { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+
+/* Timeline: Applied → Shortlisted → Decision */
+.timeline { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; padding: 0; margin: 0.75rem 0; }
+.timeline__step { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.88rem; }
+.timeline__dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); }
+.timeline__step--done { color: var(--text); font-weight: 600; }
+.timeline__step--done .timeline__dot { background: var(--blue); border-color: var(--blue); }
+.timeline__step--accepted .timeline__dot { background: var(--success); border-color: var(--success); }
+.timeline__step--rejected .timeline__dot { background: var(--error); border-color: var(--error); }
+.timeline__step--withdrawn .timeline__dot { background: #888; border-color: #888; }
+
+/* My Applications cards */
+.app-list, .candidate-list { display: grid; gap: 0.9rem; }
+.app-card__head, .candidate-card__head { display: flex; flex-wrap: wrap; justify-content: space-between;
+  align-items: flex-start; gap: 0.5rem 1rem; }
+.app-card__title, .candidate-card__name { margin: 0; font-size: 1.1rem; }
+.app-card__facts { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; }
+.app-card__facts .muted { margin-right: 0.3rem; }
+.app-card__reason { margin: 0.25rem 0; }
+.app-card__actions, .candidate-card__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.placement-panel { border: 1px solid #a5d6a7; background: var(--success-bg); border-radius: var(--radius);
+  padding: 0.75rem 1rem; margin-top: 0.75rem; }
+.placement-panel h4 { margin: 0 0 0.5rem; color: var(--success); }
+.placement-panel dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin: 0; }
+.placement-panel dt { font-size: 0.8rem; color: var(--muted); }
+.placement-panel dd { margin: 0; font-weight: 600; }
+
+/* Dashboard: placement + applications summary */
+.placement-card { border-left: 5px solid var(--success); }
+.placement-card h2 { margin-top: 0; font-size: 1.15rem; color: var(--success); }
+.placement-card p { margin: 0.25rem 0; }
+.app-counts { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+/* Partner: candidates page */
+.candidates-head h1 { margin-bottom: 0.5rem; }
+.tabs { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.25rem; margin: 1rem 0; }
+.tab { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.35rem 0.8rem;
+  font: inherit; font-size: 0.88rem; cursor: pointer; white-space: nowrap; color: var(--text); }
+.tab--active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.tab .count { display: inline-block; min-width: 1.4rem; margin-left: 0.25rem; padding: 0 0.35rem; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08); font-size: 0.8rem; text-align: center; }
+.tab--active .count { background: rgba(255, 255, 255, 0.25); }
+.candidate-card__who { flex: 1; min-width: 180px; }
+.candidate-card__who p { margin: 0.1rem 0 0; }
+.candidate-card__status { display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start; }
+.candidate-card .match-bar { margin-top: 0.75rem; }
+.candidate-card__details { border-top: 1px solid var(--border); margin-top: 0.9rem; padding-top: 0.5rem; }
+.candidate-card__details h4 { margin: 0.9rem 0 0.4rem; font-size: 0.95rem; }
+.candidate-card__note { white-space: pre-wrap; margin: 0; }
