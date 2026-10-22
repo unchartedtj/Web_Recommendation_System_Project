@@ -35,3 +35,18 @@ export async function closeOpportunity(id) {
   const { data } = await client.patch(`/partner/opportunities/${id}/close`);
   return data.opportunity;
 }
+
+// ---- Industry partner: candidates ----
+
+/** GET /api/partner/opportunities/:id/candidates?status= → { opportunity, counts, candidates } */
+export async function fetchCandidates(id, status) {
+  const { data } = await client.get(`/partner/opportunities/${id}/candidates`,
+    { params: status ? { status } : {} });
+  return data;
+}
+
+/** PATCH /api/partner/applications/:id. Body: { action: shortlist|accept|reject, reason?, start_date?, end_date? } */
+export async function decideApplication(id, body) {
+  const { data } = await client.patch(`/partner/applications/${id}`, body);
+  return data.application;
+}
