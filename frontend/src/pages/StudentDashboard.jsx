@@ -4,13 +4,16 @@
  *   - profile status card (complete / incomplete, last updated, button)
  *   - quick stats: open internships, how many you're eligible for, your top match %
  *   - "Your top 3 matches" (compact cards linking to details) + "See all recommendations"
+ *   - an "Applications" summary (counts per status) and a highlighted "Your placement" card
  * Empty states guide students who haven't completed their profile yet.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchMyApplications } from '../api/applications.js';
 import { parseApiError } from '../api/client.js';
 import { fetchOpportunities, fetchProfile, fetchRecommendations } from '../api/student.js';
 import StudentLayout from '../components/student/StudentLayout.jsx';
+import { STATUS_LABELS } from '../components/ui/ApplicationStatusBadge.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorBanner from '../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton.jsx';
@@ -27,8 +30,10 @@ export default function StudentDashboard() {
   const load = useCallback(() => {
     setError('');
     setData(null);
-    Promise.all([fetchProfile(), fetchRecommendations(), fetchOpportunities()])
-      .then(([profile, recs, browse]) => setData({ profile, recs, openCount: browse.opportunities.length }))
+    Promise.all([fetchProfile(), fetchRecommendations(), fetchOpportunities(), fetchMyApplications()])
+      .then(([profile, recs, browse, applications]) => setData({
+        profile, recs, openCount: browse.opportunities.length, applications,
+      }))
       .catch((err) => setError(parseApiError(err).message));
   }, []);
   useEffect(load, [load]);
@@ -39,6 +44,9 @@ export default function StudentDashboard() {
   const top3 = all.slice(0, 3);
   const topPercent = all.length ? Math.round(all[0].match_percent) : null;
   const complete = data?.profile.is_complete;
+  const applications = data?.applications ?? [];
+  const placed = applications.find((a) => a.placement);
+  const appCounts = applications.reduce((acc, a) => ({ ...acc, [a.status]: (acc[a.status] ?? 0) + 1 }), {});
 
   return (
     <StudentLayout>
@@ -64,6 +72,40 @@ export default function StudentDashboard() {
             <Link className="btn btn--primary" to="/student/profile">
               {complete ? 'Update profile' : 'Complete your profile'}
             </Link>
+          </section>
+
+          {/* ---- Your placement (only once accepted) ---- */}
+          {placed && (
+            <section className="panel placement-card" aria-labelledby="your-placement">
+              <h2 id="your-placement"><span aria-hidden="true">🎉 </span>Your placement</h2>
+              <p>
+                <strong>{placed.opportunity.title}</strong> at {placed.placement.organization}
+              </p>
+              <p className="muted">
+                Status: <span className="capitalize">{placed.placement.status}</span>
+                {placed.placement.start_date && ` · Starts ${formatDate(placed.placement.start_date)}`}
+                {placed.placement.end_date && ` · Ends ${formatDate(placed.placement.end_date)}`}
+              </p>
+            </section>
+          )}
+
+          {/* ---- Applications summary ---- */}
+          <section className="panel" aria-labelledby="applications-summary">
+            <div className="page-head">
+              <h2 id="applications-summary" className="section-title">Applications</h2>
+              <Link className="btn btn--secondary btn--sm" to="/student/applications">My applications</Link>
+            </div>
+            {applications.length === 0 ? (
+              <p className="muted">You haven&apos;t applied to any internships yet.</p>
+            ) : (
+              <ul className="app-counts">
+                {Object.entries(STATUS_LABELS).map(([status, label]) => (
+                  <li key={status} className={`app-status app-status--${status}`}>
+                    {label}: <strong>{appCounts[status] ?? 0}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {/* ---- Quick stats ---- */}
