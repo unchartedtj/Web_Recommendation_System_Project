@@ -1,0 +1,129 @@
+/* Styles for the account menu, account pages (change password, feedback), the 404/error
+   pages and the whole admin dashboard. Mobile-first: base rules are for phones, @media adds
+   the desktop layout. Colours come from the variables in global.css. */
+
+/* ---------- Account menu ---------- */
+.account-menu { position: relative; }
+.account-menu__button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px; padding: 0.4rem 0.75rem; font: inherit; cursor: pointer; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu__button:hover { background: rgba(255, 255, 255, 0.12); }
+.account-menu__list { position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 40; min-width: 200px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); padding: 0.35rem; display: grid; }
+.account-menu__list a, .account-menu__list button { display: block; text-align: left; padding: 0.55rem 0.75rem;
+  border-radius: 6px; color: var(--text); text-decoration: none; background: none; border: 0; font: inherit;
+  cursor: pointer; }
+.account-menu__list a:hover, .account-menu__list button:hover { background: var(--bg); }
+.navbar__links .account-menu { margin-top: 0.25rem; }
+@media (min-width: 760px) { .navbar__links .account-menu { margin: 0 0 0 0.5rem; } }
+@media (max-width: 759px) { .navbar__links .account-menu__list { position: static; box-shadow: none; } }
+
+/* ---------- Account pages, 404 / error pages ---------- */
+.narrow-form { max-width: 460px; }
+.narrow-form .field input { width: 100%; }
+.status-page { text-align: center; }
+.status-page__code { font-size: 3rem; font-weight: 800; color: var(--blue); margin: 0; }
+
+/* ---------- SUS questionnaire ---------- */
+.sus-list { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 1rem; }
+.sus-item fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 0.9rem; margin: 0; }
+.sus-item legend { font-weight: 600; padding: 0 0.25rem; }
+.sus-item__number { color: var(--blue); }
+.sus-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; margin-top: 0.5rem; }
+.sus-option { position: relative; display: grid; justify-items: center; gap: 0.15rem; padding: 0.45rem 0.2rem;
+  border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.75rem; }
+.sus-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sus-option:focus-within { outline: 2px solid var(--blue); outline-offset: 1px; }
+.sus-option__value { font-weight: 800; font-size: 1rem; }
+.sus-option--chosen { background: var(--blue); border-color: var(--blue); color: #fff; }
+.sus-form .field textarea { width: 100%; }
+.thank-you h2 { margin-top: 0; }
+@media (max-width: 480px) { .sus-option__label { font-size: 0.65rem; } }
+
+/* ---------- Admin layout ---------- */
+.admin-app { min-height: 100vh; background: var(--bg); }
+.admin-topbar { gap: 0.5rem; flex-wrap: nowrap; }
+.admin-topbar .account-menu { margin-left: auto; }
+.admin-body { display: block; }
+.admin-sidebar { display: none; flex-direction: column; gap: 0.15rem; background: var(--surface);
+  border-bottom: 1px solid var(--border); padding: 0.5rem; }
+.admin-sidebar--open { display: flex; }
+.admin-sidebar a { padding: 0.55rem 0.75rem; border-radius: 8px; color: var(--text); text-decoration: none; font-weight: 600; }
+.admin-sidebar a:hover { background: var(--bg); }
+.admin-sidebar a.active { background: var(--blue); color: #fff; }
+.admin-main { padding: 1.25rem 1rem 3rem; max-width: 1200px; min-width: 0; }
+.admin-main h1 { font-size: 1.5rem; }
+.page-head__actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+@media (max-width: 480px) { .admin-topbar .brand { font-size: 0.9rem; } }
+@media (min-width: 760px) {
+  .admin-menu-toggle { display: none; }
+  .admin-body { display: grid; grid-template-columns: 220px 1fr; }
+  .admin-sidebar { display: flex; border-bottom: 0; border-right: 1px solid var(--border);
+    min-height: calc(100vh - 60px); position: sticky; top: 0; align-self: start; padding: 1rem 0.75rem; }
+  .admin-main { padding: 1.5rem 2rem 3rem; }
+}
+
+/* ---------- Admin: numbers and charts ---------- */
+.stats--admin { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 1rem; }
+.stat__value--small { font-size: 1.05rem; }
+.chart-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-bottom: 1rem; }
+@media (min-width: 900px) { .chart-grid { grid-template-columns: repeat(3, 1fr); } }
+.chart-panel__title, .small-heading { font-size: 1rem; margin: 0 0 0.75rem; }
+.chart-box { width: 100%; height: 220px; }
+.activity-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.activity-list li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: baseline;
+  padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+/* ---------- Admin: tables ---------- */
+.table-wrap { overflow-x: auto; }
+.admin-table__clickable { cursor: pointer; }
+.admin-table__clickable:hover td { background: var(--bg); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin: 0.75rem 0; }
+.compact-table td, .compact-table th { padding: 0.45rem 0.6rem; }
+.row--strong td { font-weight: 700; }
+.sort-button { background: none; border: 0; font: inherit; font-weight: 700; cursor: pointer; padding: 0; color: inherit; }
+
+/* ---------- Admin: status pills ---------- */
+.pill { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.6rem; border-radius: 999px;
+  font-size: 0.82rem; font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
+.pill--confirmed { background: #e3f2fd; color: var(--blue); border-color: #90caf9; }
+.pill--ongoing { background: #fff8e1; color: #7a5200; border-color: #ffe082; }
+.pill--completed { background: var(--success-bg); color: var(--success); border-color: #a5d6a7; }
+.pill--terminated { background: var(--error-bg); color: var(--error); border-color: #ef9a9a; }
+.pill--active { background: var(--success-bg); color: var(--success); }
+.pill--inactive { background: #eceff4; color: var(--muted); }
+
+/* ---------- Admin: records ---------- */
+.detail-list { display: grid; gap: 0.5rem; margin: 0 0 1rem; }
+.detail-list div { display: grid; gap: 0.1rem; }
+.detail-list dt { font-size: 0.8rem; color: var(--muted); }
+.detail-list dd { margin: 0; font-weight: 600; }
+.detail-list--row { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.detail-grid { display: grid; gap: 1rem; }
+.record-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  .record-grid { grid-template-columns: repeat(3, 1fr); }
+  .record-grid__wide { grid-column: 1 / -1; }
+}
+.plain-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.two-col { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .two-col { grid-template-columns: 1fr 1fr; } }
+.weights { list-style: none; padding: 0; margin: 0 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+.weights__value { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
+
+/* ---------- Admin: users ---------- */
+.temp-password__value { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.temp-password__value code { font-size: 1.1rem; background: #fff; padding: 0.25rem 0.5rem; border-radius: 6px;
+  border: 1px solid var(--border); word-break: break-all; }
+
+/* ---------- Admin: SUS results ---------- */
+.sus-score { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem;
+  border-left: 6px solid var(--border); }
+.sus-score--pass { border-left-color: var(--success); }
+.sus-score--fail { border-left-color: var(--error); }
+.sus-score__value { font-size: 2.6rem; font-weight: 800; margin: 0; color: var(--blue); }
+.sus-score__verdict { font-weight: 700; font-size: 1.1rem; margin: 0; }
+.sus-score--pass .sus-score__verdict { color: var(--success); }
+.sus-score--fail .sus-score__verdict { color: var(--error); }
