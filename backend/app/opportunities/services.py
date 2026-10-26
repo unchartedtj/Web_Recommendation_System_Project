@@ -5,6 +5,7 @@ Serialisation = turning database objects into plain dicts that Flask sends as JS
 """
 import logging
 
+from app.activity import log_activity
 from app.extensions import db
 from app.models import (AcademicUnit, InternshipOpportunity, OpportunityPrecursor,
                         OpportunitySkill, OpportunityStatus, RequirementImportance, Sector,
@@ -69,6 +70,7 @@ def save_opportunity(data: dict, *, partner=None, opportunity=None) -> Internshi
     e.g. save_opportunity(data, partner=p), which makes calls easier to read.
     """
     try:
+        creating = opportunity is None
         if opportunity is None:
             # CREATE: a brand-new, open opportunity owned by this partner.
             opportunity = InternshipOpportunity(partner_id=partner.partner_id,
@@ -80,6 +82,10 @@ def save_opportunity(data: dict, *, partner=None, opportunity=None) -> Internshi
             setattr(opportunity, field, data[field])
         db.session.flush()  # assigns opportunity_id for new rows
         _replace_requirements(opportunity, data["requirements"], data["skills"])
+        log_activity("opportunity.created" if creating else "opportunity.updated",
+                     actor=opportunity.partner.user_id if opportunity.partner else None,
+                     target_type="opportunity", target_id=opportunity.opportunity_id,
+                     details={"title": opportunity.title})
         db.session.commit()       # save everything together
     except Exception:
         db.session.rollback()     # on any failure, save nothing
@@ -88,10 +94,15 @@ def save_opportunity(data: dict, *, partner=None, opportunity=None) -> Internshi
     return opportunity
 
 
-def close_opportunity(opportunity: InternshipOpportunity) -> InternshipOpportunity:
-    """Mark an opportunity closed. Closing twice is harmless (nothing happens the 2nd time)."""
+def close_opportunity(opportunity: InternshipOpportunity, actor=None) -> InternshipOpportunity:
+    """Mark an opportunity closed. Closing twice is harmless (nothing happens the 2nd time).
+    actor = who closed it (default: the partner who owns it)."""
     if opportunity.status != OpportunityStatus.CLOSED:
         opportunity.status = OpportunityStatus.CLOSED
+        log_activity("opportunity.closed",
+                     actor=actor if actor is not None else opportunity.partner.user_id,
+                     target_type="opportunity", target_id=opportunity.opportunity_id,
+                     details={"title": opportunity.title})
         db.session.commit()
         refit_model()             # a closed opportunity must leave the model
     return opportunity
