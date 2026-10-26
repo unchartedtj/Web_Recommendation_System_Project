@@ -4,6 +4,7 @@ Endpoints in this file (all under /api):
     GET   /units                                  any logged-in user
     GET   /skills                                 any logged-in user (grouped by category)
     GET   /sectors                                any logged-in user
+    GET   /counties                               any logged-in user (Kenya's 47 counties)
     GET   /opportunities                          any logged-in user (open, deadline not passed)
                                                   ?search= &sector_id= &skill_id= &sort=newest|deadline|best_match
     GET   /opportunities/<id>                     any logged-in user (open ones only;
@@ -25,12 +26,14 @@ from sqlalchemy import func, or_
 
 from app.auth.decorators import current_partner, current_user, role_required
 from app.errors import ApiError
+from app.utils import int_arg, json_body
 from app.extensions import db
 from app.models import (AcademicUnit, IndustryPartner, InternshipOpportunity, OpportunitySkill,
                         OpportunityStatus, Sector, Skill)
 from app.recommendations.services import (latest_marks, match_details, profile_is_complete,
                                           student_skill_ids)
 from services.recommendation_engine import get_engine
+from app.counties import KENYAN_COUNTIES
 from app.opportunities import opportunities_bp
 from app.opportunities.services import (active_sector_ids, active_skill_ids, active_unit_ids,
                                         close_opportunity, save_opportunity,
@@ -51,17 +54,9 @@ def _application_lookup():
     return student_application_lookup(student) if student else ({}, False)
 
 
-def _json_body() -> dict:
-    """Read the request body as JSON. Anything that isn't a JSON object → 400."""
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        raise ApiError("Request body must be a JSON object", 400)
-    return data
-
-
 def _validated_body() -> dict:
     """Read AND validate an opportunity body. Any problem → 400 with field errors."""
-    data, errors = validate_opportunity(_json_body(), active_unit_ids(), active_skill_ids(),
+    data, errors = validate_opportunity(json_body(), active_unit_ids(), active_skill_ids(),
                                         active_sector_ids())
     if errors:
         raise ApiError("Validation failed", 400, errors)
@@ -92,6 +87,13 @@ def list_units():
     return jsonify({"units": [serialize_unit(u) for u in units]})
 
 
+@opportunities_bp.get("/counties")
+@jwt_required()
+def list_counties():
+    """Kenya's 47 counties, for the Location dropdown on the Post Opportunity form."""
+    return jsonify({"counties": KENYAN_COUNTIES})
+
+
 @opportunities_bp.get("/skills")
 @jwt_required()
 def list_skills():
@@ -109,17 +111,6 @@ def list_sectors():
 
 
 SORTS = ("newest", "deadline", "best_match")
-
-
-def _int_param(name: str):
-    """Read an optional whole-number query parameter (e.g. ?sector_id=3). Bad value → 400."""
-    raw = request.args.get(name, "").strip()
-    if not raw:
-        return None
-    try:
-        return int(raw)
-    except ValueError:
-        raise ApiError(f"{name} must be a number", 400, {name: "Must be a number"})
 
 
 def _student_context():
@@ -153,7 +144,7 @@ def browse_opportunities():
     Students with a complete profile also get their match_percent on each item.
     """
     search = request.args.get("search", "").strip()
-    sector_id, skill_id = _int_param("sector_id"), _int_param("skill_id")
+    sector_id, skill_id = int_arg("sector_id"), int_arg("skill_id")
     sort = request.args.get("sort", "newest").strip() or "newest"
     if sort not in SORTS:
         raise ApiError(f"sort must be one of {', '.join(SORTS)}", 400, {"sort": "Invalid sort"})
