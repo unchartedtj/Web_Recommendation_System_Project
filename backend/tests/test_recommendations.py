@@ -185,9 +185,9 @@ def test_get_regenerates_after_the_model_changes(client, student_token, profile_
 # ---- Retrain -------------------------------------------------------------------------------
 
 def test_admin_can_retrain_and_sees_unit_and_skill_idf(client, seeded):
-    create_user_with_profile({"email": "admin@strathmore.edu", "password": "Admin1234",
+    create_user_with_profile({"email": "root@strathmore.edu", "password": "Admin1234",
                               "role": "system_admin", "name": "Root"})
-    token = login(client, "admin@strathmore.edu", "Admin1234")
+    token = login(client, "root@strathmore.edu", "Admin1234")
 
     res = client.post("/api/admin/model/retrain", headers=auth_header(token))
 
