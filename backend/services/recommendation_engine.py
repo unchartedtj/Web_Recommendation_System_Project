@@ -392,11 +392,6 @@ class RecommendationEngine:
 
     # ---- UML: rankOpportunities() ---------------------------------------------------
 
-    def rank_opportunities(self, results: list[dict]) -> list[dict]:
-        return rank(results)
-
-    # ---- UML: generateRecommendations(studentId) ------------------------------------
-
     def _score(self, student_id: int) -> list[dict]:
         from flask import current_app
 
