@@ -9,6 +9,9 @@ test starts from an empty schema and your real data in wbl_placement is never to
 """
 import os
 
+# The seeded admin's password in tests (set BEFORE the app and the seed catalogue are imported).
+os.environ.setdefault("DEFAULT_ADMIN_PASSWORD", "AdminPass123")
+
 import pymysql      # low-level MySQL driver, used only to CREATE the test database
 import pytest
 
