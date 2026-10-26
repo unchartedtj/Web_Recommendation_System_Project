@@ -10,8 +10,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { parseApiError } from '../../api/client.js';
 import { createOpportunity, fetchMyOpportunity, updateOpportunity } from '../../api/opportunities.js';
-import { fetchSectors, fetchSkillCategories } from '../../api/catalog.js';
-import { fetchUnits } from '../../api/units.js';
+import { fetchCounties, fetchSectors, fetchSkillCategories, fetchUnits } from '../../api/catalog.js';
 import DashboardLayout from '../../components/DashboardLayout.jsx';
 import OpportunityForm, { toFormState } from '../../components/OpportunityForm.jsx';
 import { PARTNER_NAV } from './partnerNav.js';
@@ -24,6 +23,7 @@ export default function OpportunityEditor() {
 
   const [units, setUnits] = useState(null);                            // null = still loading
   const [sectors, setSectors] = useState(null);
+  const [counties, setCounties] = useState(null);
   const [skillCategories, setSkillCategories] = useState(null);
   const [initial, setInitial] = useState(isEdit ? null : undefined);   // undefined = blank form
   const [loadError, setLoadError] = useState('');
@@ -31,7 +31,7 @@ export default function OpportunityEditor() {
   // Load everything the form needs, when the page opens (and again if the id changes).
   useEffect(() => {
     const loads = [fetchUnits().then(setUnits), fetchSectors().then(setSectors),
-      fetchSkillCategories().then(setSkillCategories)];
+      fetchSkillCategories().then(setSkillCategories), fetchCounties().then(setCounties)];
     if (isEdit) loads.push(fetchMyOpportunity(id).then((o) => setInitial(toFormState(o))));
     // Promise.all waits for all loads; if any fails, show its message.
     Promise.all(loads).catch((err) => setLoadError(parseApiError(err).message));
@@ -51,7 +51,8 @@ export default function OpportunityEditor() {
   };
 
   // Only show the form once the units (and, when editing, the opportunity) have loaded.
-  const ready = units !== null && sectors !== null && skillCategories !== null && initial !== null;
+  const ready = units !== null && sectors !== null && skillCategories !== null && counties !== null
+    && initial !== null;
 
   return (
     <DashboardLayout title={isEdit ? 'Edit opportunity' : 'Post opportunity'} nav={PARTNER_NAV}>
@@ -63,6 +64,7 @@ export default function OpportunityEditor() {
           key={id ?? 'new'}
           units={units}
           sectors={sectors}
+          counties={counties}
           skillCategories={skillCategories}
           initial={initial}
           submitLabel={isEdit ? 'Save changes' : 'Post opportunity'}
