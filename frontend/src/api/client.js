@@ -34,11 +34,19 @@ client.interceptors.response.use(
   (response) => response,          // successful responses pass straight through
   (error) => {
     const url = error.config?.url || '';
+    const code = error.response?.data?.code;
     if (error.response?.status === 401 && !url.includes('/auth/login')) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       // A full page load to /login also resets all in-memory React state.
-      if (window.location.pathname !== '/login') window.location.assign('/login');
+      // ?reason=deactivated makes the login page explain why the user was signed out.
+      const target = code === 'account_deactivated' ? '/login?reason=deactivated' : '/login';
+      if (window.location.pathname !== '/login') window.location.assign(target);
+    }
+    // The admin reset this password: the user must choose a new one before anything else.
+    if (error.response?.status === 403 && code === 'password_change_required'
+        && window.location.pathname !== '/account/password') {
+      window.location.assign('/account/password');
     }
     // Re-throw so the calling code's `catch` still runs.
     return Promise.reject(error);
