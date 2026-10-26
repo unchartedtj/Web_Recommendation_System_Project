@@ -14,7 +14,9 @@ from datetime import date, datetime, timezone
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
+from app.activity import log_activity
 from app.errors import ApiError
+from app.utils import iso, parse_date
 from app.extensions import db
 from app.models import (Application, ApplicationStatus, InternshipOpportunity, OpportunityStatus,
                         PlacementRecord, PlacementStatus)
@@ -39,15 +41,6 @@ PARTNER_ACTIONS = {
 def _now() -> datetime:
     """Current UTC time without timezone info (how every timestamp in this project is stored)."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-def _iso(value) -> str | None:
-    """Dates → "2026-10-15"; datetimes → "2026-10-15T09:30:00Z" (UTC); None stays None."""
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.isoformat(timespec="seconds") + "Z"
-    return value.isoformat()
 
 
 def _is_open_for_applications(o: InternshipOpportunity) -> bool:
@@ -119,7 +112,7 @@ def apply(student, opportunity_id, note=None, acknowledge_below_minimum=False) -
 
     # 8. Save the application with a frozen snapshot of the match.
     snapshot = {
-        "captured_at": _iso(_now()),
+        "captured_at": iso(_now()),
         **{key: match[key] for key in (
             "match_score", "match_percent", "breakdown", "meets_requirements",
             "unmet_requirements", "missing_essential_skills", "missing_desirable_skills",
@@ -137,6 +130,12 @@ def apply(student, opportunity_id, note=None, acknowledge_below_minimum=False) -
     )
     db.session.add(application)
     try:
+        db.session.flush()
+        log_activity("application.submitted", actor=student.user_id, target_type="application",
+                     target_id=application.application_id,
+                     details={"opportunity": opportunity.title,
+                              "match_percent": match["match_percent"],
+                              "below_minimum": not match["meets_requirements"]})
         db.session.commit()
     except IntegrityError:
         # Two requests at the same moment: the unique constraint stops the second one.
@@ -156,7 +155,11 @@ def _not_allowed(application: Application) -> ApiError:
     return ApiError(f"This application is already {application.status}", 409)
 
 
-def _set_status(application: Application, status: str, reason: str | None = None):
+def _set_status(application: Application, status: str, reason: str | None = None, actor=None):
+    """Change the status and log it. actor=None means the system did it automatically."""
+    log_activity(f"application.{status}", actor=actor, target_type="application",
+                 target_id=application.application_id,
+                 details={"from": application.status, "reason": reason})
     now = _now()
     application.status = status
     application.status_reason = reason
@@ -172,21 +175,22 @@ def withdraw(student, application_id: int) -> Application:
         raise ApiError("You can only withdraw your own applications", 403)
     if application.status not in ApplicationStatus.ACTIVE:
         raise _not_allowed(application)
-    _set_status(application, ApplicationStatus.WITHDRAWN)
+    _set_status(application, ApplicationStatus.WITHDRAWN, actor=student.user_id)
     db.session.commit()
     return application
 
 
-# ---- Partner: shortlist / accept / reject ---------------------------------------------------
+def withdraw_all_active(student_id: int, reason: str, actor=None) -> int:
+    """Withdraw every pending/shortlisted application of a student (e.g. account deactivated).
+    Doesn't commit. Returns how many were withdrawn."""
+    active = Application.query.filter(Application.student_id == student_id,
+                                      Application.status.in_(ApplicationStatus.ACTIVE)).all()
+    for application in active:
+        _set_status(application, ApplicationStatus.WITHDRAWN, reason, actor=actor)
+    return len(active)
 
-def _parse_date(value, field: str, errors: dict):
-    if value in (None, ""):
-        return None
-    try:
-        return date.fromisoformat(value)
-    except (TypeError, ValueError):
-        errors[field] = "Use the format YYYY-MM-DD"
-        return None
+
+# ---- Partner: shortlist / accept / reject ---------------------------------------------------
 
 
 def partner_decide(partner, application_id: int, data: dict) -> Application:
@@ -209,8 +213,8 @@ def partner_decide(partner, application_id: int, data: dict) -> Application:
     reason = (reason or "").strip() or None
     if reason and len(reason) > REASON_MAX:
         errors["reason"] = f"At most {REASON_MAX} characters"
-    start = _parse_date(data.get("start_date"), "start_date", errors)
-    end = _parse_date(data.get("end_date"), "end_date", errors)
+    start = parse_date(data.get("start_date"), "start_date", errors)
+    end = parse_date(data.get("end_date"), "end_date", errors)
     if start and end and end <= start:
         errors["end_date"] = "The end date must be after the start date"
     if errors:
@@ -221,13 +225,14 @@ def partner_decide(partner, application_id: int, data: dict) -> Application:
         raise _not_allowed(application)
 
     if action == "accept":
-        return _accept(application, start, end)
-    _set_status(application, new_status, reason if action == "reject" else None)
+        return _accept(application, start, end, actor=partner.user_id)
+    _set_status(application, new_status, reason if action == "reject" else None,
+                actor=partner.user_id)
     db.session.commit()
     return application
 
 
-def _accept(application: Application, start_date, end_date) -> Application:
+def _accept(application: Application, start_date, end_date, actor=None) -> Application:
     """Accept + create the placement, in ONE transaction.
 
     The opportunity row is locked (SELECT ... FOR UPDATE), so if two accepts happen at the same
@@ -250,11 +255,17 @@ def _accept(application: Application, start_date, end_date) -> Application:
             raise ApiError("All slots are filled", 409)
 
         # 1. Accept and create the placement record.
-        _set_status(application, ApplicationStatus.ACCEPTED)
-        db.session.add(PlacementRecord(
+        _set_status(application, ApplicationStatus.ACCEPTED, actor=actor)
+        placement = PlacementRecord(
             student_id=application.student_id, opportunity_id=opportunity.opportunity_id,
             application_id=application.application_id, status=PlacementStatus.CONFIRMED,
-            start_date=start_date, end_date=end_date, created_at=_now()))
+            start_date=start_date, end_date=end_date, created_at=_now())
+        db.session.add(placement)
+        db.session.flush()
+        log_activity("placement.created", actor=actor, target_type="placement",
+                     target_id=placement.placement_id,
+                     details={"application_id": application.application_id,
+                              "opportunity": opportunity.title})
 
         # 2. The student's other active applications are withdrawn automatically.
         for other in Application.query.filter(
@@ -267,6 +278,9 @@ def _accept(application: Application, start_date, end_date) -> Application:
         if accepted + 1 >= opportunity.slots:
             opportunity.status = OpportunityStatus.CLOSED
             closed_now = True
+            log_activity("opportunity.closed", target_type="opportunity",
+                         target_id=opportunity.opportunity_id,
+                         details={"title": opportunity.title, "reason": "All positions filled"})
             for other in Application.query.filter(
                     Application.opportunity_id == opportunity.opportunity_id,
                     Application.status.in_(ApplicationStatus.ACTIVE)):
@@ -302,9 +316,9 @@ def _placement_dict(p: PlacementRecord | None) -> dict | None:
     return {
         "placement_id": p.placement_id,
         "status": p.status,
-        "start_date": _iso(p.start_date),
-        "end_date": _iso(p.end_date),
-        "created_at": _iso(p.created_at),
+        "start_date": iso(p.start_date),
+        "end_date": iso(p.end_date),
+        "created_at": iso(p.created_at),
         "organization": p.opportunity.partner.organization_name,
         "title": p.opportunity.title,
     }
@@ -321,9 +335,9 @@ def serialize_student_application(a: Application) -> dict:
         "application_id": a.application_id,
         "status": a.status,
         "status_reason": a.status_reason,
-        "application_date": _iso(a.application_date),
-        "updated_at": _iso(a.updated_at),
-        "decided_at": _iso(a.decided_at),
+        "application_date": iso(a.application_date),
+        "updated_at": iso(a.updated_at),
+        "decided_at": iso(a.decided_at),
         "motivation_note": a.motivation_note,
         "match_score_at_apply": a.match_score_at_apply,
         "match_percent_at_apply": _match_percent(a.match_score_at_apply),
@@ -336,7 +350,7 @@ def serialize_student_application(a: Application) -> dict:
             "location": o.location,
             "duration_months": o.duration_months,
             "status": o.status,
-            "application_deadline": _iso(o.application_deadline),
+            "application_deadline": iso(o.application_deadline),
         },
         "placement": _placement_dict(a.placement_record),
     }
@@ -351,8 +365,8 @@ def serialize_candidate(a: Application) -> dict:
         "application_id": a.application_id,
         "status": a.status,
         "status_reason": a.status_reason,
-        "application_date": _iso(a.application_date),
-        "decided_at": _iso(a.decided_at),
+        "application_date": iso(a.application_date),
+        "decided_at": iso(a.decided_at),
         "motivation_note": a.motivation_note,
         "match_score": a.match_score_at_apply,
         "match_percent": _match_percent(a.match_score_at_apply),
