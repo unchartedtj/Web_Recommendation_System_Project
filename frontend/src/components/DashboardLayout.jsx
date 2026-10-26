@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import AccountMenu from './AccountMenu.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 /**
@@ -6,21 +7,13 @@ import { useAuth } from '../context/AuthContext.jsx';
  * `nav` is a list of {to, label} links shown under the greeting.
  */
 export default function DashboardLayout({ title, nav, children }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
+  const { user } = useAuth();
 
   return (
     <div className="dashboard">
       <header className="topbar">
         <span className="brand">WBL Placement</span>
-        <button type="button" className="btn btn--ghost" onClick={handleLogout}>
-          Logout
-        </button>
+        <AccountMenu />
       </header>
       <main className="dashboard__body">
         <p className="eyebrow">{title}</p>
