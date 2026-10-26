@@ -9,8 +9,8 @@
  * owns them, and every change is reported back through onChange(newRows). That keeps
  * one single source of truth for the data.
  */
-export const MIN_ROWS = 2;
-export const MAX_ROWS = 5;
+const MIN_ROWS = 2;
+const MAX_ROWS = 5;
 
 let nextKey = 1;   // counter for unique row ids (lives outside the component, so it keeps counting)
 
