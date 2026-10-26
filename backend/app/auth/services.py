@@ -95,6 +95,8 @@ def serialize_user(user: User) -> dict:
         "role": user.role.value,              #  "student,admin or industry_partner"
         "name": user.display_name,            
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "is_active": user.is_active,
+        "must_change_password": user.must_change_password,
         "profile": {},
     }
     # Add the role-specific details.
