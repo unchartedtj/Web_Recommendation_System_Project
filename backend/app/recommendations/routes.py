@@ -1,16 +1,17 @@
 """Recommendations and model retraining.
 
 Endpoints in this file (all under /api):
-    POST /recommendations/generate     student: run the engine and save the results
+    POST /recommendations/generate     student: run the engine on the saved profile (TC04:
+                                       an incomplete profile → 400 listing the missing units)
     GET  /recommendations              student: the saved results (refreshed if out of date)
     POST /admin/model/retrain          system admin: refit the models, see the IDF weights
 
 (Students enter grades, skills and interests through PUT /api/student/profile,
-which also generates recommendations. The old temporary POST /api/grades was removed.)
+which also generates their recommendations.)
 """
 from flask import jsonify
 
-from app.auth.decorators import current_student, role_required
+from app.auth.decorators import current_student, current_user, role_required
 from app.errors import ApiError
 from app.models import AcademicUnit, Recommendation, Skill
 from app.recommendations import recommendations_bp
@@ -18,6 +19,7 @@ from app.recommendations.services import (latest_marks, match_details, profile_i
                                           student_skill_ids)
 from services.recommendation_engine import IncompleteGradesError, get_engine
 from app.applications.services import student_application_lookup
+from app.activity import log_and_commit
 
 STUDENT, ADMIN = "student", "system_admin"
 
@@ -138,6 +140,8 @@ def saved_recommendations():
 def retrain():
     """Admin: refit both models now and show the learnt IDF weight of each unit and skill."""
     model = get_engine().update_model()
+    log_and_commit("model.retrained", actor=current_user(),
+                   details={"opportunities": len(model["opportunity_ids"])})
     units = {u.unit_id: u.unit_name for u in AcademicUnit.query.filter(
         AcademicUnit.unit_id.in_(model["vocabulary"]))}
     skills = {s.skill_id: s.name for s in Skill.query.filter(
