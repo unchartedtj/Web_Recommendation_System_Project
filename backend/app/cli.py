@@ -14,6 +14,18 @@ from app.auth.validators import validate_email, validate_password
 from app.errors import ApiError
 
 
+def _print_admin(summary: dict):
+    """Show the admin login. A newly generated password is printed this ONE time."""
+    from app.seed.catalog import DEFAULT_ADMIN
+    if summary["admin_created"]:
+        click.secho(f"  Default admin CREATED: username \"{DEFAULT_ADMIN['name']}\", "
+                    f"password: {summary['admin_password']}", fg="yellow", bold=True)
+        click.secho("  Write this password down now: it is not shown again.", fg="yellow")
+    else:
+        click.echo(f"  Default admin (already exists): username \"{DEFAULT_ADMIN['name']}\" "
+                   "on the Login page")
+
+
 def register_cli(app: Flask):
     """Attach our commands to the app (called from create_app)."""
 
@@ -75,6 +87,41 @@ def register_cli(app: Flask):
         for email in summary["students"]:
             click.echo(f"    - {email}")
         # The admin logs in with a username (not an email) on the normal Login page.
-        status = "created" if summary["admin_created"] else "already exists"
-        click.echo(f"  Default admin ({status}): username \"{DEFAULT_ADMIN['name']}\" "
-                   "on the Login page")
+        _print_admin(summary)
+
+    @app.cli.command("reset-demo")
+    @click.option("--confirm", default=None, help='Type RESET to confirm.')
+    def reset_demo(confirm):
+        """DANGER: delete ALL data, rebuild the tables and load the demo data again."""
+        import os
+
+        if os.getenv("FLASK_ENV", "").lower() == "production":
+            raise click.ClickException("reset-demo is disabled when FLASK_ENV=production.")
+        if confirm is None:
+            click.secho("This deletes ALL data (every user, internship, application and "
+                        "placement) and reloads the demo data.", fg="red", bold=True)
+            confirm = click.prompt('Type RESET to continue', default="", show_default=False)
+        if confirm != "RESET":
+            raise click.ClickException("Cancelled: the confirmation word was not RESET.")
+
+        from flask_migrate import upgrade
+        from sqlalchemy import text
+
+        from app.extensions import db
+        from app.seed.seeder import seed_all
+
+        click.echo("  Dropping all tables...")
+        db.session.remove()
+        db.drop_all()
+        with db.engine.begin() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+        click.echo("  Running the migrations...")
+        upgrade()
+        click.echo("  Loading the demo data and training the model...")
+        summary = seed_all()
+        click.secho("Demo reset complete.", fg="green")
+        click.echo(f"  Opportunities: {summary['opportunities']}, demo applications: "
+                   f"{summary['applications']}")
+        click.echo("  Demo partners (password DemoPass123): " + ", ".join(summary["partners"]))
+        click.echo("  Demo students (password DemoPass123): " + ", ".join(summary["students"]))
+        _print_admin(summary)
