@@ -42,6 +42,12 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  // Replace the stored user (e.g. after changing the password clears must_change_password).
+  const updateUser = useCallback((fresh) => {
+    localStorage.setItem(USER_KEY, JSON.stringify(fresh));
+    setUser(fresh);
+  }, []);
+
   const logout = useCallback(() => {
     // Forget everything; ProtectedRoute will then redirect to /login.
     localStorage.removeItem(TOKEN_KEY);
@@ -70,8 +76,8 @@ export function AuthProvider({ children }) {
   // The object every useAuth() caller receives. useMemo rebuilds it only when one of
   // the listed values changes, so components don't re-render for no reason.
   const value = useMemo(
-    () => ({ user, token, isAuthenticated: Boolean(token && user), login, logout }),
-    [user, token, login, logout],
+    () => ({ user, token, isAuthenticated: Boolean(token && user), login, logout, updateUser }),
+    [user, token, login, logout, updateUser],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
