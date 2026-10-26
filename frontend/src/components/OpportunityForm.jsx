@@ -61,13 +61,14 @@ export function toFormState(opportunity) {
  * Props (inputs from the parent):
  *   units           – the unit catalogue for the requirement dropdowns
  *   sectors         – the preset sectors for the Sector dropdown
+ *   counties        – Kenya's 47 counties for the Location dropdown
  *   skillCategories – the preset skills, grouped by category
  *   initial         – starting values when editing (undefined for a new opportunity)
  *   submitLabel     – button text, e.g. "Post opportunity" or "Save changes"
  *   onSubmit        – what to do with the data (create or update)
  *   onCancel        – what the Cancel button does
  */
-export default function OpportunityForm({ units, sectors, skillCategories, initial, submitLabel,
+export default function OpportunityForm({ units, sectors, counties = [], skillCategories, initial, submitLabel,
   onSubmit, onCancel }) {
   const [details, setDetails] = useState(initial?.details ?? EMPTY_DETAILS);
   // A new opportunity starts with 2 empty unit rows (the minimum allowed) and no skills.
@@ -154,7 +155,20 @@ export default function OpportunityForm({ units, sectors, skillCategories, initi
           {errors.sector_id && <p className="field__error">{errors.sector_id}</p>}
         </div>
 
-        {field('location', 'Location', { placeholder: 'e.g. Nairobi' })}
+        {/* Location: one of Kenya's 47 counties. An older free-text location that isn't a
+            county is still shown (so editing doesn't silently lose it) until another is chosen. */}
+        <div className={`field ${errors.location ? 'field--invalid' : ''}`}>
+          <label htmlFor="location">Location (county)</label>
+          <select id="location" name="location" value={details.location} onChange={handleDetail}
+            aria-invalid={Boolean(errors.location)} aria-describedby={errors.location ? 'location-error' : undefined}>
+            <option value="">Select a county…</option>
+            {details.location && !counties.includes(details.location) && (
+              <option value={details.location}>{details.location} (not a county: please choose one)</option>
+            )}
+            {counties.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {errors.location && <p className="field__error" id="location-error">{errors.location}</p>}
+        </div>
         {field('duration_months', 'Duration (months)', { type: 'number', min: 1, max: 12 })}
         {field('slots', 'Slots available', { type: 'number', min: 1 })}
         {/* min={tomorrow} stops the date picker offering past dates. */}
