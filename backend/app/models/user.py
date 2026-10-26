@@ -27,6 +27,12 @@ class User(db.Model):
         nullable=False,
     )
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    # A deactivated account can't log in, and its existing tokens stop working.
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+    # Set when an admin resets the password: the user must choose a new one after logging in.
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False,
+                                     server_default=db.false())
+    last_login_at = db.Column(db.DateTime)
 
     # One-to-one links to the role profile (uselist=False). Only one is populated per user.
     # e.g. user.student is the Student row for a student, and None for a partner.
