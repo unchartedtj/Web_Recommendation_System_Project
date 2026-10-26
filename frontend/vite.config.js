@@ -10,6 +10,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173, strictPort: true },
+  // Put the chart library (used only on admin pages) and React in their own files, so the
+  // main app file stays small and the browser can cache them separately.
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: { charts: ['recharts'], react: ['react', 'react-dom', 'react-router-dom'] },
+      },
+    },
+  },
   // Component tests (`npm test`): Vitest runs them in jsdom, a simulated browser.
   test: {
     environment: 'jsdom',
