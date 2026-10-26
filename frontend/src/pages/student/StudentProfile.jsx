@@ -11,10 +11,9 @@
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchSectors, fetchSkillCategories } from '../../api/catalog.js';
+import { fetchSectors, fetchSkillCategories, fetchUnits } from '../../api/catalog.js';
 import { parseApiError } from '../../api/client.js';
 import { fetchProfile, saveProfile } from '../../api/student.js';
-import { fetchUnits } from '../../api/units.js';
 import StudentLayout from '../../components/student/StudentLayout.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton.jsx';
