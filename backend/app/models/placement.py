@@ -209,6 +209,9 @@ class PlacementRecord(db.Model):
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    status_reason = db.Column(db.String(255))      # e.g. why a placement was terminated
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(),
+                           onupdate=db.func.now())
 
     student = db.relationship("Student", back_populates="placement_records")
     opportunity = db.relationship("InternshipOpportunity", back_populates="placement_records")
