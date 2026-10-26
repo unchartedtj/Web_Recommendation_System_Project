@@ -82,21 +82,33 @@ def _seed_partners() -> dict:
     return partners
 
 
-def _seed_admin() -> bool:
-    """Create the default system admin (username "Admin") if it doesn't exist yet.
+def _seed_admin() -> str | None:
+    """Create the default system admin (username "Admin") if no admin has that name yet.
 
-    Returns True if it was created now. An existing admin is left alone, so re-seeding
-    never resets a password.
+    Returns the password if the admin was created now (so it can be printed ONCE), else None.
+    An existing admin is left alone, so re-seeding never resets a password.
     """
+    import secrets
+
+    from sqlalchemy import func
+
+    from app.auth.validators import validate_password
+    from app.models import SystemAdmin
+
     info = catalog.DEFAULT_ADMIN
-    if User.query.filter_by(email=info["email"]).first():
-        return False
+    exists = (SystemAdmin.query.filter(func.lower(SystemAdmin.name) == info["name"].lower()).first()
+              or User.query.filter_by(email=info["email"]).first())
+    if exists:
+        return None
+    password = info["password"]
+    if not password or validate_password(password):
+        # No (valid) password configured: generate a strong one, e.g. "Wbl-Admin-7fK2m9Qp".
+        password = f"Wbl-Admin-{secrets.randbelow(10)}{secrets.token_urlsafe(8)}"
     # Same function the register endpoint and `flask create-admin` use (hashes the password,
-    # creates the users row + system_admins row together). It doesn't apply the 8-character
-    # password rule, which is why the short demo password "Admin" is allowed here.
-    create_user_with_profile({"email": info["email"], "password": info["password"],
+    # creates the users row + system_admins row together).
+    create_user_with_profile({"email": info["email"], "password": password,
                               "role": "system_admin", "name": info["name"]})
-    return True
+    return password
 
 
 def _seed_demo_students(units: dict, skills: dict, sectors: dict) -> list:
@@ -275,7 +287,7 @@ def seed_all(include_demo_students: bool = True) -> dict:
         skills = _seed_skills()
         sectors = _seed_sectors()
         partners = _seed_partners()
-        admin_created = _seed_admin()
+        admin_password = _seed_admin()
         removed_opps = _prune_demo_opportunities(partners)
         opportunities = _seed_opportunities(units, partners, skills, sectors)
         deleted_units, deactivated_units = _prune_units()
@@ -299,7 +311,8 @@ def seed_all(include_demo_students: bool = True) -> dict:
         "units": len(catalog.UNITS),
         "partners": [p["email"] for p in catalog.PARTNERS.values()],
         "students": [s["email"] for s in catalog.DEMO_STUDENTS],
-        "admin_created": admin_created,
+        "admin_created": admin_password is not None,
+        "admin_password": admin_password,      # only set when created now
         "opportunities": len(opportunities),
         "requirements": sum(len(o["requirements"]) for o in catalog.OPPORTUNITIES),
         "skills": len(catalog.SKILLS),
