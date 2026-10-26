@@ -1,4 +1,4 @@
-"""The recommendations blueprint: /api/grades, /api/recommendations and /api/admin/model/retrain.
+"""The recommendations blueprint: /api/recommendations and /api/admin/model/retrain.
 
 (See app/auth/__init__.py for what a Blueprint is.)
 """
