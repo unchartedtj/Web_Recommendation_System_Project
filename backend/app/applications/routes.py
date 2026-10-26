@@ -17,17 +17,11 @@ from app.applications.services import (apply, partner_decide, serialize_candidat
                                        serialize_student_application, status_counts, withdraw)
 from app.auth.decorators import current_partner, current_student, role_required
 from app.errors import ApiError
+from app.utils import json_body
 from app.extensions import db
 from app.models import Application, ApplicationStatus, InternshipOpportunity
 
 STUDENT, PARTNER = "student", "industry_partner"
-
-
-def _json_body() -> dict:
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        raise ApiError("Request body must be a JSON object", 400)
-    return data
 
 
 def _status_filter():
@@ -46,7 +40,7 @@ def _status_filter():
 @applications_bp.post("/applications")
 @role_required(STUDENT)
 def create_application():
-    data = _json_body()
+    data = json_body()
     application = apply(current_student(), data.get("opportunity_id"),
                         note=data.get("motivation_note"),
                         acknowledge_below_minimum=data.get("acknowledge_below_minimum") is True)
@@ -111,6 +105,6 @@ def candidates(opportunity_id):
 @applications_bp.patch("/partner/applications/<int:application_id>")
 @role_required(PARTNER)
 def decide(application_id):
-    application = partner_decide(current_partner(), application_id, _json_body())
+    application = partner_decide(current_partner(), application_id, json_body())
     return jsonify({"message": f"Application {application.status}",
                     "application": serialize_candidate(application)})
