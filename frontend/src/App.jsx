@@ -7,8 +7,21 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { useAuth } from './context/AuthContext.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminActivity from './pages/admin/AdminActivity.jsx';
+import AdminCatalog from './pages/admin/AdminCatalog.jsx';
+import AdminModel from './pages/admin/AdminModel.jsx';
+import AdminOpportunities from './pages/admin/AdminOpportunities.jsx';
+import AdminOverview from './pages/admin/AdminOverview.jsx';
+import { AdminPartnerDetail, AdminPartners } from './pages/admin/AdminPartners.jsx';
+import AdminPlacements from './pages/admin/AdminPlacements.jsx';
+import AdminStudentDetail from './pages/admin/AdminStudentDetail.jsx';
+import AdminStudents from './pages/admin/AdminStudents.jsx';
+import AdminSus from './pages/admin/AdminSus.jsx';
+import AdminUsers from './pages/admin/AdminUsers.jsx';
+import ChangePassword from './pages/ChangePassword.jsx';
+import Feedback from './pages/Feedback.jsx';
 import Login from './pages/Login.jsx';
+import NotFound from './pages/NotFound.jsx';
 import Candidates from './pages/partner/Candidates.jsx';
 import MyOpportunities from './pages/partner/MyOpportunities.jsx';
 import OpportunityEditor from './pages/partner/OpportunityEditor.jsx';
@@ -20,6 +33,10 @@ import OpportunityDetails from './pages/student/OpportunityDetails.jsx';
 import StudentProfile from './pages/student/StudentProfile.jsx';
 import StudentRecommendations from './pages/student/StudentRecommendations.jsx';
 import { ROLES, dashboardPathFor } from './utils/roles.js';
+
+function HomeRedirect({ home }) {
+  return <Navigate to={home} replace />;
+}
 
 export default function App() {
   // The logged-in user (or null), shared app-wide by AuthContext.
@@ -53,11 +70,31 @@ export default function App() {
         <Route path="/partner/opportunities/:id/candidates" element={<Candidates />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={<AdminOverview />} />
+        <Route path="/admin/placements" element={<AdminPlacements />} />
+        <Route path="/admin/students" element={<AdminStudents />} />
+        <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
+        <Route path="/admin/partners" element={<AdminPartners />} />
+        <Route path="/admin/partners/:id" element={<AdminPartnerDetail />} />
+        <Route path="/admin/opportunities" element={<AdminOpportunities />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/catalog" element={<AdminCatalog />} />
+        <Route path="/admin/model" element={<AdminModel />} />
+        <Route path="/admin/sus" element={<AdminSus />} />
+        <Route path="/admin/activity" element={<AdminActivity />} />
       </Route>
 
-      {/* "*" matches any other URL: redirect to the right home page. */}
-      <Route path="*" element={<Navigate to={home} replace />} />
+      {/* Every logged-in role. */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/account/password" element={<ChangePassword />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={[ROLES.STUDENT, ROLES.PARTNER]} />}>
+        <Route path="/feedback" element={<Feedback />} />
+      </Route>
+
+      {/* "/" goes to the user's home page; any other unknown URL shows the 404 page. */}
+      <Route path="/" element={<HomeRedirect home={home} />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
