@@ -21,6 +21,8 @@ export default function Login() {
   // Success message passed by the Register page after sign-up.
   // `?.` = "optional chaining": gives undefined instead of crashing if state is null.
   const successMessage = location.state?.message;
+  // Set by the API client when an admin deactivated this account during the session.
+  const deactivated = new URLSearchParams(location.search).get('reason') === 'deactivated';
 
   const [form, setForm] = useState({ email: '', password: '' });   // what the user typed
   const [errors, setErrors] = useState({});                        // per-field errors from the API
@@ -67,6 +69,11 @@ export default function Login() {
 
         {/* `a && <X/>` shows <X/> only when `a` is truthy. */}
         {successMessage && <div className="alert alert--success">{successMessage}</div>}
+        {deactivated && !formError && (
+          <div className="alert alert--error">
+            This account has been deactivated. Contact the WBL office.
+          </div>
+        )}
         {formError && <div className="alert alert--error">{formError}</div>}
 
         {/* Labelled "Username" for everyone. The admin types "Admin"; students and partners
