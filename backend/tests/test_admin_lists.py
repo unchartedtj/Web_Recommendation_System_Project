@@ -63,8 +63,10 @@ def test_admin_can_rename_and_reactivate_a_skill(client, admin_token):
                      json={"name": "SQL (MySQL / PostgreSQL)", "is_active": True},
                      headers=auth_header(admin_token))
     assert res.status_code == 200
-    assert res.get_json()["skill"] == {"skill_id": sql.skill_id, "name": "SQL (MySQL / PostgreSQL)",
-                                       "category": "Data", "is_active": True}
+    skill = res.get_json()["skill"]
+    assert skill == {"skill_id": sql.skill_id, "name": "SQL (MySQL / PostgreSQL)",
+                     "category": "Data", "is_active": True, "in_use": skill["in_use"]}
+    assert skill["in_use"] > 0                       # opportunities still require SQL
 
 
 # ---- Sectors ---------------------------------------------------------------------------------
