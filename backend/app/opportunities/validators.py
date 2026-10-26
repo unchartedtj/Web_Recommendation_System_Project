@@ -7,6 +7,7 @@ Example: {"requirements.1.unit_id": "This unit is already listed"} means the 2nd
 """
 from datetime import date
 
+from app.counties import canonical_county
 from app.models import RequirementImportance
 
 MIN_REQUIREMENTS, MAX_REQUIREMENTS = 2, 5     # unit requirements per opportunity
@@ -48,7 +49,7 @@ def validate_opportunity(data: dict, active_unit_ids: set[int], active_skill_ids
     errors: dict[str, str] = {}
     cleaned: dict = {}
 
-    # Title, description, sector, location: required, trimmed, not too long.
+    # Title, description, location: required, trimmed, not too long.
     for field, max_len in TEXT_FIELDS.items():
         value = data.get(field)
         value = value.strip() if isinstance(value, str) else ""
@@ -57,6 +58,14 @@ def validate_opportunity(data: dict, active_unit_ids: set[int], active_skill_ids
         elif len(value) > max_len:
             errors[field] = f"Must be at most {max_len} characters"
         cleaned[field] = value
+
+    # Location: must be one of Kenya's 47 counties (chosen from the dropdown).
+    if "location" not in errors:
+        county = canonical_county(cleaned["location"])
+        if county is None:
+            errors["location"] = "Choose a county from the list"
+        else:
+            cleaned["location"] = county
 
     duration = _to_int(data.get("duration_months"))
     if duration is None or not 1 <= duration <= 12:
