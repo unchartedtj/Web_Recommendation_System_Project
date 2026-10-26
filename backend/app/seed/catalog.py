@@ -60,14 +60,13 @@ SECTORS = [
 
 DEMO_PASSWORD = "DemoPass123"
 
-# Default system admin. Log in on the normal Login page with the USERNAME (the admin's
-# name) instead of an email: username "Admin", password "Admin".
-# ⚠ "Admin"/"Admin" is easy to guess. It's fine for a local demo, but before going live
-# set DEFAULT_ADMIN_PASSWORD in backend/.env to something strong (before the first seed).
+# Default system admin. Log in on the normal Login page with the USERNAME "Admin".
+# Its password is DEFAULT_ADMIN_PASSWORD from backend/.env if that meets the password rules;
+# otherwise a strong random one is generated and printed ONCE when the admin is created.
 DEFAULT_ADMIN = {
-    "name": "Admin",                 # this is the username typed on the Login page
-    "email": "admin@wbl.local",      # an email is still stored, because every user needs one
-    "password": os.getenv("DEFAULT_ADMIN_PASSWORD", "Admin"),
+    "name": "Admin",                       # this is the username typed on the Login page
+    "email": "admin@strathmore.edu",       # an email is still stored, because every user needs one
+    "password": os.getenv("DEFAULT_ADMIN_PASSWORD"),
 }
 
 # key -> account details; opportunities below refer to partners by key.
@@ -161,7 +160,7 @@ OPPORTUNITIES = [
         "title": "Web & Mobile App Development Intern",
         "sector": "Web & Mobile Development",
         "skills": [("JavaScript", E), ("React", E), ("HTML & CSS", E), ("Kotlin / Flutter", D)],
-        "location": "Nairobi (hybrid)",
+        "location": "Nairobi",
         "duration_months": 3,
         "slots": 2,
         "description": "Build responsive web front-ends and cross-platform mobile app features.",
