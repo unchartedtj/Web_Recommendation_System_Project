@@ -11,6 +11,7 @@ from flask_jwt_extended import decode_token
 
 from app.auth import services
 from app.models import IndustryPartner, Student, User
+from app.seed.catalog import DEFAULT_ADMIN
 
 REGISTER = "/api/auth/register"
 LOGIN = "/api/auth/login"
@@ -252,7 +253,7 @@ def test_login_with_unknown_email_returns_same_generic_401(client):
 
 @pytest.mark.parametrize("username", ["Admin", "admin", "ADMIN", "  Admin  "])
 def test_default_admin_logs_in_with_username(app, client, seeded, username):
-    res = login(client, username, "Admin")
+    res = login(client, username, DEFAULT_ADMIN["password"])
 
     assert res.status_code == 200
     body = res.get_json()
@@ -267,7 +268,7 @@ def test_default_admin_wrong_password_returns_401(client, seeded):
 
 
 def test_default_admin_can_also_log_in_with_email(client, seeded):
-    assert login(client, "admin@wbl.local", "Admin").status_code == 200
+    assert login(client, DEFAULT_ADMIN["email"], DEFAULT_ADMIN["password"]).status_code == 200
 
 
 def test_students_cannot_log_in_by_name(client, seeded, student_payload):
