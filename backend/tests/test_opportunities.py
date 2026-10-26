@@ -150,6 +150,26 @@ def test_sectors_are_listed(client, student_token):
     assert len(res.get_json()["sectors"]) == 7
 
 
+def test_counties_are_listed(client, partner_token):
+    counties = client.get("/api/counties", headers=auth_header(partner_token)).get_json()["counties"]
+    assert len(counties) == 47
+    assert counties == sorted(counties)
+    assert {"Nairobi", "Mombasa", "Kisumu", "Uasin Gishu"} <= set(counties)
+
+
+@pytest.mark.parametrize("location", ["Narnia", "Nairobi (hybrid)", "Remote"])
+def test_location_must_be_a_county(client, partner_token, opportunity_body, location):
+    res = post(client, partner_token, {**opportunity_body(), "location": location})
+    assert res.status_code == 400
+    assert res.get_json()["fields"]["location"] == "Choose a county from the list"
+
+
+def test_county_spelling_is_standardised(client, partner_token, opportunity_body):
+    res = post(client, partner_token, {**opportunity_body(), "location": "  uasin gishu "})
+    assert res.status_code == 201
+    assert res.get_json()["opportunity"]["location"] == "Uasin Gishu"
+
+
 # =============================================================================
 # Creating opportunities
 # =============================================================================
