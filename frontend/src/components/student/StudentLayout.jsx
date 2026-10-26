@@ -2,13 +2,13 @@
  * Page shell for every student page: a top navbar + the page content.
  *
  * Navbar links: Dashboard · Recommendations · Browse Internships · My Applications ·
- * My Profile · Logout.
+ * My Profile, plus the account menu (Give feedback · Logout).
  * The current page is highlighted (NavLink adds class "active"). On small screens
  * (< 760px) the links collapse behind a "Menu" button.
  */
 import { useEffect, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { NavLink, useLocation } from 'react-router-dom';
+import AccountMenu from '../AccountMenu.jsx';
 
 const LINKS = [
   { to: '/student', label: 'Dashboard', end: true },
@@ -19,18 +19,11 @@ const LINKS = [
 ];
 
 export default function StudentLayout({ children }) {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Close the mobile menu whenever the page changes.
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
 
   return (
     <div className="student-app">
@@ -46,7 +39,7 @@ export default function StudentLayout({ children }) {
           {LINKS.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end}>{link.label}</NavLink>
           ))}
-          <button type="button" className="navbar__logout" onClick={handleLogout}>Logout</button>
+          <AccountMenu />
         </nav>
       </header>
       <main className="student-main">{children}</main>
