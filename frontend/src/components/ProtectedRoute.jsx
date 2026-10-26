@@ -11,6 +11,10 @@ export default function ProtectedRoute({ allowedRoles }) {
     // <Navigate> redirects as soon as it's drawn. `from` remembers where the user was heading.
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+  // After an admin password reset, the only page allowed is "Change password".
+  if (user.must_change_password && location.pathname !== '/account/password') {
+    return <Navigate to="/account/password" replace />;
+  }
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to={dashboardPathFor(user.role)} replace />;
   }
