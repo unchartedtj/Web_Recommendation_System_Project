@@ -63,6 +63,15 @@ class Config:
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_models", "engine.joblib"),
     )
 
+    # Uploaded transcripts (PDFs) are stored here, outside anything the web server serves
+    # publicly. Only the student and admins can download a file, through the API.
+    TRANSCRIPT_FOLDER = os.getenv(
+        "TRANSCRIPT_FOLDER",
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "transcripts"),
+    )
+    TRANSCRIPT_MAX_BYTES = 5 * 1024 * 1024            # 5 MB per PDF
+    MAX_CONTENT_LENGTH = 6 * 1024 * 1024              # Flask refuses bigger requests outright
+
 
 class DevelopmentConfig(Config):
     """Used by `flask run` on your laptop. DEBUG shows detailed errors and auto-reloads."""
