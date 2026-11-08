@@ -53,6 +53,8 @@ def app(tmp_path_factory):
     model_path = str(tmp_path_factory.mktemp("ml_models") / "engine.joblib")
     app.config["ML_MODEL_PATH"] = model_path
     app.extensions["recommendation_engine"].model_path = model_path
+    # Uploaded transcripts also go to a temporary folder, never backend/uploads.
+    app.config["TRANSCRIPT_FOLDER"] = str(tmp_path_factory.mktemp("transcripts"))
     return app
 
 
@@ -151,6 +153,17 @@ def register_and_login(client, payload: dict) -> str:
     res = client.post("/api/auth/login",
                       json={"email": payload["email"], "password": payload["password"]})
     return res.get_json()["access_token"]
+
+
+def verify_marks(email: str):
+    """Mark a student's marks as ACCEPTED by the WBL office (as if they uploaded a transcript
+    and an admin accepted it), so the student may apply for internships."""
+    from app.models import Transcript, TranscriptStatus, User
+    student = User.query.filter_by(email=email).one().student
+    db.session.add(Transcript(student_id=student.student_id, stored_name="test.pdf",
+                              original_name="transcript.pdf", file_size=10,
+                              status=TranscriptStatus.ACCEPTED))
+    db.session.commit()
 
 
 def login(client, email: str, password: str) -> str:
