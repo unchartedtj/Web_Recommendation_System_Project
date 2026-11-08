@@ -1,6 +1,6 @@
 /**
  * Page shell for every admin page: a top bar (brand + account menu) and a sidebar with the
- * 10 admin sections. Below 760px the sidebar collapses behind a "Menu" button.
+ * 11 admin sections. Below 760px the sidebar collapses behind a "Menu" button.
  */
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -10,6 +10,7 @@ const ADMIN_LINKS = [
   { to: '/admin', label: 'Overview', icon: '📊', end: true },
   { to: '/admin/placements', label: 'Placements', icon: '🎓' },
   { to: '/admin/students', label: 'Students', icon: '🧑‍🎓' },
+  { to: '/admin/verifications', label: 'Verifications', icon: '📄' },
   { to: '/admin/partners', label: 'Partners', icon: '🏢' },
   { to: '/admin/opportunities', label: 'Opportunities', icon: '💼' },
   { to: '/admin/users', label: 'Users', icon: '👥' },
