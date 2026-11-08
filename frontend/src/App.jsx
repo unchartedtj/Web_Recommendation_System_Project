@@ -4,9 +4,8 @@
  * react-router-dom reads the URL in the address bar and renders the matching <Route>.
  * No full page reload happens when you move between pages; React just swaps components.
  */
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import { useAuth } from './context/AuthContext.jsx';
 import AdminActivity from './pages/admin/AdminActivity.jsx';
 import AdminCatalog from './pages/admin/AdminCatalog.jsx';
 import AdminModel from './pages/admin/AdminModel.jsx';
@@ -18,8 +17,10 @@ import AdminStudentDetail from './pages/admin/AdminStudentDetail.jsx';
 import AdminStudents from './pages/admin/AdminStudents.jsx';
 import AdminSus from './pages/admin/AdminSus.jsx';
 import AdminUsers from './pages/admin/AdminUsers.jsx';
+import AdminVerifications from './pages/admin/AdminVerifications.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
 import Feedback from './pages/Feedback.jsx';
+import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Candidates from './pages/partner/Candidates.jsx';
@@ -32,18 +33,9 @@ import MyApplications from './pages/student/MyApplications.jsx';
 import OpportunityDetails from './pages/student/OpportunityDetails.jsx';
 import StudentProfile from './pages/student/StudentProfile.jsx';
 import StudentRecommendations from './pages/student/StudentRecommendations.jsx';
-import { ROLES, dashboardPathFor } from './utils/roles.js';
-
-function HomeRedirect({ home }) {
-  return <Navigate to={home} replace />;
-}
+import { ROLES } from './utils/roles.js';
 
 export default function App() {
-  // The logged-in user (or null), shared app-wide by AuthContext.
-  const { user } = useAuth();
-  // "/" and unknown paths go to the user's dashboard if logged in, otherwise to login.
-  const home = user ? dashboardPathFor(user.role) : '/login';
-
   return (
     <Routes>
       {/* Public pages: anyone can open these. */}
@@ -74,6 +66,7 @@ export default function App() {
         <Route path="/admin/placements" element={<AdminPlacements />} />
         <Route path="/admin/students" element={<AdminStudents />} />
         <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
+        <Route path="/admin/verifications" element={<AdminVerifications />} />
         <Route path="/admin/partners" element={<AdminPartners />} />
         <Route path="/admin/partners/:id" element={<AdminPartnerDetail />} />
         <Route path="/admin/opportunities" element={<AdminOpportunities />} />
@@ -92,8 +85,9 @@ export default function App() {
         <Route path="/feedback" element={<Feedback />} />
       </Route>
 
-      {/* "/" goes to the user's home page; any other unknown URL shows the 404 page. */}
-      <Route path="/" element={<HomeRedirect home={home} />} />
+      {/* "/" is the public landing page (logged-in users go to their dashboard);
+          any other unknown URL shows the 404 page. */}
+      <Route path="/" element={<Landing />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
