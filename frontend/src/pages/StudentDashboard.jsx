@@ -1,6 +1,6 @@
 /**
  * Student dashboard (/student).
- *   - "Welcome, <first name>"
+ *   - "Welcome, <first name>" (a dismissible banner with a link to the WBL requirements)
  *   - profile status card (complete / incomplete, last updated, button)
  *   - quick stats: open internships, how many you're eligible for, your top match %
  *   - "Your top 3 matches" (compact cards linking to details) + "See all recommendations"
@@ -13,6 +13,7 @@ import { fetchMyApplications } from '../api/applications.js';
 import { parseApiError } from '../api/client.js';
 import { fetchOpportunities, fetchProfile, fetchRecommendations } from '../api/student.js';
 import StudentLayout from '../components/student/StudentLayout.jsx';
+import WelcomeBanner from '../components/student/WelcomeBanner.jsx';
 import { STATUS_LABELS } from '../components/ui/ApplicationStatusBadge.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import ErrorBanner from '../components/ui/ErrorBanner.jsx';
@@ -50,7 +51,7 @@ export default function StudentDashboard() {
 
   return (
     <StudentLayout>
-      <h1>Welcome, {firstName}</h1>
+      <WelcomeBanner firstName={firstName} />
       <ErrorBanner message={error} onRetry={load} />
       {!data && !error && <LoadingSkeleton variant="cards" count={2} />}
 
