@@ -41,6 +41,7 @@ from app.opportunities.services import (active_sector_ids, active_skill_ids, act
                                         skills_by_category)
 from app.opportunities.validators import validate_opportunity
 from app.applications.services import status_counts, student_application_lookup
+from app.verification import marks_verified, transcript_status
 
 PARTNER = "industry_partner"
 
@@ -215,6 +216,11 @@ def view_opportunity(opportunity_id):
     applied, placed = _application_lookup()
     body = {"opportunity": serialize_opportunity(o), "profile_complete": False,
             "my_application": applied.get(o.opportunity_id), "has_placement": placed}
+    if get_jwt().get("role") == "student" and current_user().student:
+        # Students can only apply once the WBL office has verified their marks.
+        s = current_user().student
+        body["marks_verified"] = marks_verified(s)
+        body["transcript_status"] = transcript_status(s)
     context = _student_context()
     if context:
         _student, matches, marks, skill_ids = context
