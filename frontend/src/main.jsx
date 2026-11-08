@@ -17,6 +17,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import './styles/global.css';   // importing a CSS file applies it to the whole app
 import './styles/admin.css';    // account menu, account pages and the admin dashboard
+import './styles/landing.css';  // public landing page and the dashboard welcome banner
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
