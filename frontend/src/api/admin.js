@@ -86,3 +86,16 @@ export async function downloadCsv(url, filename, params) {
   link.remove();
   URL.revokeObjectURL(href);
 }
+
+// ---- Marks verification (transcripts) ----
+export const fetchTranscripts = (params) => get('/admin/transcripts', params);
+export const fetchTranscript = (id) => get(`/admin/transcripts/${id}`).then((d) => d.transcript);
+/** The transcript PDF as a temporary in-browser link (so the login token is sent). */
+export async function fetchTranscriptFileUrl(id) {
+  const response = await client.get(`/admin/transcripts/${id}/file`, { responseType: 'blob' });
+  return URL.createObjectURL(response.data);
+}
+export async function reviewTranscript(id, body) {
+  const { data } = await client.patch(`/admin/transcripts/${id}`, body);
+  return data.transcript;
+}
