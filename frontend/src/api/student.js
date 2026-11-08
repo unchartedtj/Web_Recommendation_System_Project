@@ -44,3 +44,22 @@ export async function fetchOpportunity(id) {
   const { data } = await client.get(`/opportunities/${id}`);
   return data;
 }
+
+/**
+ * POST /api/student/transcript: upload (or replace) my transcript PDF → status "pending".
+ * Sent as a file upload (multipart form), not JSON.
+ */
+export async function uploadTranscript(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await client.post('/student/transcript', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.transcript;
+}
+
+/** Open my uploaded transcript in a new tab (fetched with my login token). */
+export async function openMyTranscript() {
+  const response = await client.get('/student/transcript/file', { responseType: 'blob' });
+  window.open(URL.createObjectURL(response.data), '_blank', 'noopener');
+}
