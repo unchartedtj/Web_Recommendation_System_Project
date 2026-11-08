@@ -12,7 +12,7 @@ import pytest
 from app.extensions import db
 from app.models import Application, InternshipOpportunity, OpportunityStatus, PlacementRecord
 from app.seed.catalog import DEMO_PASSWORD
-from tests.conftest import auth_header, login, register_and_login
+from tests.conftest import auth_header, login, register_and_login, verify_marks
 
 SWE = "Software Development Intern"
 DATA = "Data Analytics & AI Intern"
@@ -27,7 +27,7 @@ def make_student(client, profile_body):
     """make_student(n) registers student n, saves a complete profile and returns a token.
     make_student(n, profile=False) leaves the profile empty."""
     def make(n, overrides=None, profile=True, skills=("Java", "Git & GitHub", "Python"),
-             interests=("Software Development",)):
+             interests=("Software Development",), verified=True):
         token = register_and_login(client, {
             "role": "student", "email": f"student{n}@strathmore.edu",
             "password": "Passw0rd123", "confirm_password": "Passw0rd123",
@@ -37,6 +37,8 @@ def make_student(client, profile_body):
             res = client.put("/api/student/profile", headers=auth_header(token),
                              json=profile_body(65, overrides, skills=skills, interests=interests))
             assert res.status_code == 200, res.get_json()
+            if verified:
+                verify_marks(f"student{n}@strathmore.edu")
         return token
     return make
 
