@@ -10,6 +10,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { register } from '../api/auth.js';
 import { parseApiError } from '../api/client.js';
 import FormField from '../components/FormField.jsx';
+import Logo from '../components/Logo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { ROLES, dashboardPathFor } from '../utils/roles.js';
 
@@ -96,7 +97,10 @@ export default function Register() {
   return (
     <div className="auth-page">
       <form className="card card--wide" onSubmit={handleSubmit} noValidate>
-        <h1>Create an account</h1>
+        <div className="auth-brand">
+          <Logo size="sm" />
+          <h1>Create an account</h1>
+        </div>
 
         {/* The Student / Industry Partner toggle. The role/aria attributes describe it for screen readers. */}
         <div className="role-toggle" role="tablist" aria-label="Account type">
