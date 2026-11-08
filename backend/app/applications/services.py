@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from app.activity import log_activity
 from app.errors import ApiError
 from app.utils import iso, parse_date
+from app.verification import marks_verified, transcript_status
 from app.extensions import db
 from app.models import (Application, ApplicationStatus, InternshipOpportunity, OpportunityStatus,
                         PlacementRecord, PlacementStatus)
@@ -87,6 +88,12 @@ def apply(student, opportunity_id, note=None, acknowledge_below_minimum=False) -
     marks = latest_marks(student.student_id)
     if not profile_is_complete(student, marks):
         raise ApiError("Complete your profile before applying", 409)
+
+    # 3b. The WBL office must have checked the typed marks against the uploaded transcript.
+    if not marks_verified(student):
+        raise ApiError("The WBL office must verify your marks before you can apply. "
+                       "Upload your transcript on My Profile.", 409,
+                       {"transcript": transcript_status(student) or "missing"})
 
     # 4. Only one placement per student.
     if has_placement(student.student_id):
