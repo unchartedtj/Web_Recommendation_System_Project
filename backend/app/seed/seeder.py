@@ -216,6 +216,24 @@ def _prune_demo_opportunities(partners: dict) -> int:
     return removed
 
 
+def _seed_demo_transcripts(students) -> int:
+    """Demo students with a profile get an already-ACCEPTED transcript (a small generated PDF
+    listing their marks), so they can apply straight away in a demo. Students without a
+    profile (e.g. kevin.mwangi) get none, to demonstrate the upload → verify flow."""
+    from app.recommendations.services import latest_marks
+    from app.verification import seed_accepted
+
+    names = {u.unit_id: u.unit_name for u in AcademicUnit.query.all()}
+    created = 0
+    for student in students:
+        marks = latest_marks(student.student_id)
+        lines = [f"{names.get(uid, uid)}: {mark:g}" for uid, mark in
+                 sorted(marks.items(), key=lambda kv: names.get(kv[0], ""))]
+        created += seed_accepted(student, ["Strathmore University - generated for the demo only", ""] + lines)
+    db.session.flush()
+    return created
+
+
 def _seed_demo_applications() -> int:
     """Create the demo applications with the real apply() rules. Safe to re-run: skips any
     that already exist, students with a placement, and closed/expired opportunities.
@@ -294,6 +312,7 @@ def seed_all(include_demo_students: bool = True) -> dict:
         demo_students = (_seed_demo_students(units, skills, sectors)
                          if include_demo_students else [])
         demo_student_ids = [s.student_id for s in demo_students]
+        _seed_demo_transcripts(demo_students)
         db.session.commit()
     except Exception:
         db.session.rollback()
