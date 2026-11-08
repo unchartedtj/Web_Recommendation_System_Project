@@ -5,7 +5,7 @@ import pytest
 from app.extensions import db
 from app.models import Application, InternshipOpportunity, User
 from app.seed.catalog import DEFAULT_ADMIN, DEMO_PASSWORD
-from tests.conftest import auth_header, login, register_and_login
+from tests.conftest import auth_header, login, register_and_login, verify_marks
 
 SWE = "Software Development Intern"
 DEACTIVATED = "This account has been deactivated. Contact the WBL office."
@@ -32,6 +32,7 @@ def student(client, seeded, profile_body):
         "last_name": "Dent", "course": "BBIT", "year_of_study": 3})
     client.put("/api/student/profile", headers=auth_header(token),
                json=profile_body(65, skills=("Java", "Git & GitHub"), interests=("Software Development",)))
+    verify_marks("stu@strathmore.edu")
     return token
 
 
