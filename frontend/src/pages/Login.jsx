@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { parseApiError } from '../api/client.js';
 import FormField from '../components/FormField.jsx';
+import Logo from '../components/Logo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { dashboardPathFor } from '../utils/roles.js';
 
@@ -64,8 +65,14 @@ export default function Login() {
     <div className="auth-page">
       {/* noValidate: turn off the browser's own pop-up checks; the server's messages are shown instead. */}
       <form className="card" onSubmit={handleSubmit} noValidate>
-        <h1>Sign in</h1>
-        <p className="muted">Strathmore WBL Placement System</p>
+        <div className="auth-brand">
+          <Logo size="lg" />
+          <h1>Welcome to the WBL Placement Portal</h1>
+          <p className="muted">
+            Log in to discover Work-Based Learning placements that match your grades, skills and
+            career interests.
+          </p>
+        </div>
 
         {/* `a && <X/>` shows <X/> only when `a` is truthy. */}
         {successMessage && <div className="alert alert--success">{successMessage}</div>}
@@ -90,7 +97,7 @@ export default function Login() {
         </button>
         <p className="switch-link">
           {/* <Link> changes page without reloading the whole site (unlike a plain <a>). */}
-          No account? <Link to="/register">Create one</Link>
+          New here? <Link to="/register">Create an account</Link>
         </p>
       </form>
     </div>
