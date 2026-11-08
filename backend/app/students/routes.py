@@ -17,6 +17,8 @@ from app.models import AcademicUnit, Grade, GradeProfile, StudentInterest, Stude
 from app.opportunities.services import active_sector_ids, active_skill_ids
 from app.students import students_bp
 from app.students.validators import validate_profile
+from app.recommendations.services import latest_marks
+from app.verification import reset_after_marks_change, serialize as serialize_transcript
 from services.recommendation_engine import IncompleteGradesError, get_engine
 
 STUDENT = "student"
@@ -46,6 +48,8 @@ def serialize_profile(student) -> dict:
                                if student.profile_updated_at else None),
         # Complete = every active unit graded + at least one skill + at least one interest.
         "is_complete": len(grades) == len(units) > 0 and bool(skill_ids) and bool(sector_ids),
+        # The uploaded transcript and whether the WBL office accepted the marks.
+        "transcript": serialize_transcript(student.transcript),
     }
 
 
@@ -76,6 +80,9 @@ def save_profile():
     try:
         # ---- ONE transaction for the whole save ----
         # 1. A new grade profile with one Grade row per unit.
+        # Remember the marks before this save: if they change, an earlier verification of
+        # the marks against the transcript no longer applies (status goes back to pending).
+        previous_marks = latest_marks(student.student_id)
         profile = GradeProfile(student_id=student.student_id)
         db.session.add(profile)
         db.session.flush()                       # get profile.profile_id
@@ -92,6 +99,9 @@ def save_profile():
             student.interests.append(StudentInterest(sector_id=sid))
         # 3. Remember when the profile changed (used to know when results are out of date).
         student.profile_updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        new_marks = {int(u): float(m) for u, m in cleaned["grades"].items()}
+        if previous_marks and new_marks != previous_marks:
+            reset_after_marks_change(student)
         db.session.flush()
         # 4. Generate recommendations INSIDE the same transaction (commit=False).
         recommendations = get_engine().generate_recommendations(student.student_id, commit=False)
