@@ -4,6 +4,7 @@
  *   can_apply  → "Apply" button (opens the Apply dialog)
  *   applied    → "Applied: <status>" (link to My Applications)
  *   closed     → "Applications closed"
+ *   unverified → the WBL office must verify the student's marks (transcript) first
  *   placed     → "You already have a confirmed placement"
  */
 import { useState } from 'react';
@@ -34,6 +35,20 @@ export default function ApplyArea({ data, onApplied }) {
           Applied: <ApplicationStatusBadge status={data.my_application.status} />
         </p>
         <Link className="btn btn--secondary" to="/student/applications">View my applications</Link>
+      </>
+    );
+  } else if (state === 'unverified') {
+    const status = data.transcript_status;
+    content = (
+      <>
+        <p>
+          {status === 'pending' && 'Your marks are waiting to be verified by the WBL office. You can apply once they are accepted.'}
+          {status === 'rejected' && 'The WBL office could not verify your marks. See the reason on My Profile, fix them and upload again.'}
+          {!status && 'Upload your transcript on My Profile. The WBL office must verify your marks before you can apply.'}
+        </p>
+        <Link className="btn btn--secondary" to="/student/profile">
+          {status ? 'View verification status' : 'Upload transcript'}
+        </Link>
       </>
     );
   } else if (state === 'placed') {
