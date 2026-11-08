@@ -38,6 +38,7 @@ describe('applyState', () => {
     expect(applyState(data({ has_placement: true }), TODAY)).toBe('placed');
     const expired = data({ opportunity: { ...data().opportunity, application_deadline: '2026-10-19' } });
     expect(applyState(expired, TODAY)).toBe('closed');
+    expect(applyState(data({ marks_verified: false, transcript_status: 'pending' }), TODAY)).toBe('unverified');
   });
 
   it('shows "applied" (not "placed") for the student\'s own accepted application', () => {
@@ -70,6 +71,18 @@ describe('ApplyArea', () => {
   it('says applications are closed after the deadline', () => {
     renderArea(data({ opportunity: { ...data().opportunity, application_deadline: '2000-01-01' } }));
     expect(screen.getByText('Applications closed')).toBeInTheDocument();
+  });
+
+  it('asks for verified marks before applying', () => {
+    renderArea(data({ marks_verified: false, transcript_status: 'pending' }));
+    expect(screen.getByText(/waiting to be verified by the WBL office/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View verification status' })).toHaveAttribute('href', '/student/profile');
+  });
+
+  it('asks a student without a transcript to upload one', () => {
+    renderArea(data({ marks_verified: false, transcript_status: null }));
+    expect(screen.getByRole('link', { name: 'Upload transcript' })).toHaveAttribute('href', '/student/profile');
   });
 
   it('blocks a student who already has a placement', () => {
