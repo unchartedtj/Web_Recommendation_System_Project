@@ -9,7 +9,7 @@ import pytest
 from app.extensions import db
 from app.models import ActivityLog, InternshipOpportunity, PlacementRecord
 from app.seed.catalog import DEFAULT_ADMIN, DEMO_PASSWORD
-from tests.conftest import auth_header, login, register_and_login
+from tests.conftest import auth_header, login, register_and_login, verify_marks
 
 SWE = "Software Development Intern"
 DATA = "Data Analytics & AI Intern"
@@ -42,6 +42,7 @@ def make_student(client, profile_body):
                              json=profile_body(65, skills=("Java", "Git & GitHub"),
                                                interests=("Software Development",)))
             assert res.status_code == 200, res.get_json()
+            verify_marks(f"student{n}@strathmore.edu")
         return token
     return make
 
