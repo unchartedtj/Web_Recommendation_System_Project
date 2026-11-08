@@ -36,7 +36,7 @@ def test_new_student_profile_is_empty_and_incomplete(client, student_token):
     assert res.status_code == 200
     profile = res.get_json()["profile"]
     assert profile == {"grades": {}, "skill_ids": [], "sector_ids": [],
-                       "profile_updated_at": None, "is_complete": False}
+                       "profile_updated_at": None, "is_complete": False, "transcript": None}
 
 
 # ---- Saving (TC03) ---------------------------------------------------------------------------
