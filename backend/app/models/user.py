@@ -109,6 +109,9 @@ class Student(db.Model):
     applications = db.relationship("Application", back_populates="student",
                                    cascade="all, delete-orphan")
     placement_records = db.relationship("PlacementRecord", back_populates="student")
+    # The uploaded transcript (PDF) and whether the WBL office accepted the marks.
+    transcript = db.relationship("Transcript", back_populates="student", uselist=False,
+                                 cascade="all, delete-orphan")
 
 
 class IndustryPartner(db.Model):
