@@ -378,7 +378,8 @@ a.btn--primary { text-decoration: none; display: inline-block; }
 .status--warn { background: #fff3e0; color: #9a4b00; border-color: #ffcc80; }
 .tag { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem;
   font-weight: 600; }
-.tag--interest { background: #fce4ec; color: #a0003f; }
+.tag--interest { background: #f1f5f9; color: #1e3a5f; border-radius: 3px; border-left: 3px solid #1e3a5f;
+  font-weight: 500; padding-left: 0.5rem; }
 
 .skill-chip { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem;
   border: 1px solid var(--border); background: var(--bg); }
@@ -582,3 +583,9 @@ a.btn--primary { text-decoration: none; display: inline-block; }
 .candidate-card__details { border-top: 1px solid var(--border); margin-top: 0.9rem; padding-top: 0.5rem; }
 .candidate-card__details h4 { margin: 0.9rem 0 0.4rem; font-size: 0.95rem; }
 .candidate-card__note { white-space: pre-wrap; margin: 0; }
+
+/* Contact us page */
+.contact-details { max-width: 32rem; }
+.contact-details dl { display: grid; grid-template-columns: 8rem 1fr; gap: 0.6rem 1rem; margin: 0; }
+.contact-details dt { font-weight: 600; color: var(--muted, #555); }
+.contact-details dd { margin: 0; }
