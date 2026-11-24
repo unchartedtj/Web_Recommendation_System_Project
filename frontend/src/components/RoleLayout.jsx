@@ -1,5 +1,5 @@
 /**
- * Wraps a page shared by every role (Change password, Give feedback) in that role's own
+ * Wraps a page shared by every role (Change password, Contact us) in that role's own
  * layout, so the navbar the user is used to stays the same.
  */
 import { useAuth } from '../context/AuthContext.jsx';
