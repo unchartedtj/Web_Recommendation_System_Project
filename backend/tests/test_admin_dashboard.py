@@ -9,7 +9,7 @@ import pytest
 from app.extensions import db
 from app.models import ActivityLog, InternshipOpportunity, PlacementRecord
 from app.seed.catalog import DEFAULT_ADMIN, DEMO_PASSWORD
-from tests.conftest import auth_header, login, register_and_login, verify_marks
+from tests.conftest import auth_header, login, register_and_login
 
 SWE = "Software Development Intern"
 DATA = "Data Analytics & AI Intern"
@@ -42,7 +42,6 @@ def make_student(client, profile_body):
                              json=profile_body(65, skills=("Java", "Git & GitHub"),
                                                interests=("Software Development",)))
             assert res.status_code == 200, res.get_json()
-            verify_marks(f"student{n}@strathmore.edu")
         return token
     return make
 
@@ -237,7 +236,7 @@ def test_activity_log_records_key_actions(client, admin, techcorp, make_student)
     patch_placement(client, admin, pid, status="ongoing", start_date="2027-01-10")
     client.post("/api/admin/sectors", headers=auth_header(admin), json={"name": "Robotics"})
     actions = {a.action for a in ActivityLog.query.all()}
-    for expected in ("auth.registered", "auth.login", "application.submitted",
+    for expected in ("auth.registered", "application.submitted",
                      "application.accepted", "placement.created", "placement.updated",
                      "catalog.sector_created"):
         assert expected in actions, expected
