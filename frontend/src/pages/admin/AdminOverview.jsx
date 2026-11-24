@@ -52,7 +52,7 @@ export default function AdminOverview() {
   const applicationsTotal = data ? Object.values(data.applications).reduce((a, b) => a + b, 0) : 0;
 
   return (
-    <AdminLayout title="Overview">
+    <AdminLayout title="Dashboard">
       <ErrorBanner message={error} onRetry={load} />
       {!data && !error && <LoadingSkeleton variant="cards" count={3} />}
       {data && (
