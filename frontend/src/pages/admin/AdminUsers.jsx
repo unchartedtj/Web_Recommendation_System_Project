@@ -1,14 +1,14 @@
 /**
- * User accounts (/admin/users): role filter and search, Activate / Deactivate (the dialog
+ * User accounts (/admin/people/accounts): role filter and search, Activate / Deactivate (the dialog
  * first shows what will happen, e.g. "This will close 2 open opportunities"), Reset password
  * (the temporary password is shown once) and Create admin.
  */
 import { useCallback, useState } from 'react';
-import { createAdmin, fetchUserImpact, fetchUsers, resetUserPassword, setUserActive } from '../../api/admin.js';
+import { createAdmin, deleteUser, fetchUserImpact, fetchUsers, resetUserPassword, setUserActive } from '../../api/admin.js';
 import { parseApiError } from '../../api/client.js';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
-import { formatDateTime } from '../../components/admin/ActivityList.jsx';
 import DataTable from '../../components/admin/DataTable.jsx';
+import DeleteDialog from '../../components/admin/DeleteDialog.jsx';
 import Pagination from '../../components/admin/Pagination.jsx';
 import { ActivePill } from '../../components/admin/Pill.jsx';
 import SearchBox from '../../components/admin/SearchBox.jsx';
@@ -49,6 +49,7 @@ export default function AdminUsers() {
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
   const [adminErrors, setAdminErrors] = useState({});
   const [toast, setToast] = useState('');
+  const [deleting, setDeleting] = useState(null);
   const clearToast = useCallback(() => setToast(''), []);
 
   const open = (type, user) => {
@@ -99,7 +100,6 @@ export default function AdminUsers() {
         <ActivePill active={u.is_active} />
         {u.must_change_password && <div className="muted small">Must change password</div>}
       </>) },
-    { key: 'last_login', label: 'Last login', render: (u) => formatDateTime(u.last_login_at) },
     { key: 'actions', label: 'Actions', render: (u) => (
       <div className="row-actions">
         {u.is_active ? (
@@ -110,6 +110,9 @@ export default function AdminUsers() {
           <button type="button" className="btn btn--secondary btn--sm" onClick={() => open('activate', u)}>Activate</button>
         )}
         <button type="button" className="btn btn--secondary btn--sm" onClick={() => open('reset', u)}>Reset password</button>
+        <button type="button" className="btn btn--danger btn--sm" disabled={u.user_id === me?.user_id}
+          title={u.user_id === me?.user_id ? "You can't delete your own account" : ''}
+          onClick={() => setDeleting(u)}>Delete</button>
       </div>) },
   ];
 
@@ -198,6 +201,16 @@ export default function AdminUsers() {
             </>
           )}
         </ConfirmDialog>
+      )}
+      {deleting && (
+        <DeleteDialog title="Delete account?" name={deleting.email} userId={deleting.user_id}
+          onCancel={() => setDeleting(null)}
+          onDelete={async () => {
+            try { await deleteUser(deleting.user_id); } catch (err) { throw parseApiError(err); }
+            setToast(`${deleting.email} deleted`);
+            setDeleting(null);
+            reload();
+          }} />
       )}
       <Toast message={toast} onDone={clearToast} />
     </AdminLayout>
