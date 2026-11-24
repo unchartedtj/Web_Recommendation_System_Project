@@ -1,11 +1,13 @@
 /**
- * Industry partners (/admin/partners) and one partner's record (/admin/partners/:id).
+ * Industry partners (/admin/people/partners) and one partner's record (/admin/people/partners/:id).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { fetchPartner, fetchPartners } from '../../api/admin.js';
+import { createPartner, deletePartner, fetchPartner, fetchPartners, updatePartner } from '../../api/admin.js';
 import { parseApiError } from '../../api/client.js';
+import AccountFormDialog from '../../components/admin/AccountFormDialog.jsx';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import DeleteDialog from '../../components/admin/DeleteDialog.jsx';
 import DataTable from '../../components/admin/DataTable.jsx';
 import Pagination from '../../components/admin/Pagination.jsx';
 import { ActivePill } from '../../components/admin/Pill.jsx';
@@ -14,11 +16,25 @@ import useAdminList from '../../components/admin/useAdminList.js';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton.jsx';
+import Toast from '../../components/ui/Toast.jsx';
 import { formatDate } from '../../utils/deadline.js';
 
 export function AdminPartners() {
   const navigate = useNavigate();
   const { params, setParam, data, error, reload } = useAdminList(fetchPartners);
+  const [adding, setAdding] = useState(false);
+  const [toast, setToast] = useState('');
+  const clearToast = useCallback(() => setToast(''), []);
+  const add = async (values) => {
+    try {
+      const { partner } = await createPartner(values);
+      setAdding(false);
+      setToast(`${partner.organization_name} added`);
+      reload();
+    } catch (err) {
+      throw parseApiError(err);
+    }
+  };
   const columns = [
     { key: 'organization_name', label: 'Organisation', render: (r) => (
       <><strong>{r.organization_name}</strong><div className="muted small">{r.email}</div></>) },
@@ -29,7 +45,9 @@ export function AdminPartners() {
     { key: 'active', label: 'Account', render: (r) => <ActivePill active={r.is_active} /> },
   ];
   return (
-    <AdminLayout title="Industry partners">
+    <AdminLayout title="Industry partners" actions={(
+      <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>+ Add partner</button>
+    )}>
       <div className="filter-row" role="group" aria-label="Filter partners">
         <SearchBox id="partner-search" value={params.search} onSearch={(v) => setParam('search', v)}
           placeholder="Organisation, contact or email" />
@@ -40,10 +58,12 @@ export function AdminPartners() {
       {data?.items.length > 0 && (
         <>
           <DataTable caption="Industry partners" columns={columns} rows={data.items} rowKey={(r) => r.partner_id}
-            onRowClick={(r) => navigate(`/admin/partners/${r.partner_id}`)} />
+            onRowClick={(r) => navigate(`/admin/people/partners/${r.partner_id}`)} />
           <Pagination page={data.page} pages={data.pages} total={data.total} onPage={(p) => setParam('page', p)} />
         </>
       )}
+      {adding && <AccountFormDialog kind="partner" onSave={add} onCancel={() => setAdding(false)} />}
+      <Toast message={toast} onDone={clearToast} />
     </AdminLayout>
   );
 }
@@ -52,6 +72,8 @@ export function AdminPartnerDetail() {
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [error, setError] = useState('');
+  const [dialog, setDialog] = useState(null);     // 'edit' | 'delete'
+  const navigate = useNavigate();
   const load = useCallback(() => {
     setError('');
     fetchPartner(id).then(setP).catch((err) => setError(parseApiError(err).message));
@@ -68,8 +90,13 @@ export function AdminPartnerDetail() {
     { key: 'deadline', label: 'Deadline', render: (o) => formatDate(o.application_deadline) },
   ];
   return (
-    <AdminLayout title={p ? p.organization_name : 'Partner'}>
-      <Link className="btn btn--secondary btn--sm back-btn" to="/admin/partners">← All partners</Link>
+    <AdminLayout title={p ? p.organization_name : 'Partner'} actions={p && (
+      <>
+        <button type="button" className="btn btn--secondary" onClick={() => setDialog('edit')}>Edit</button>
+        <button type="button" className="btn btn--danger" onClick={() => setDialog('delete')}>Delete</button>
+      </>
+    )}>
+      <Link className="btn btn--secondary btn--sm back-btn" to="/admin/people/partners">← All partners</Link>
       <ErrorBanner message={error} onRetry={load} />
       {!p && !error && <LoadingSkeleton variant="cards" count={2} />}
       {p && (
@@ -88,6 +115,22 @@ export function AdminPartnerDetail() {
             ? <EmptyState icon="💼" title="No opportunities posted yet" />
             : <DataTable caption="Opportunities" columns={columns} rows={p.opportunity_list} rowKey={(o) => o.opportunity_id} />}
         </>
+      )}
+      {dialog === 'edit' && (
+        <AccountFormDialog kind="partner" initial={p} onCancel={() => setDialog(null)}
+          onSave={async (values) => {
+            try { await updatePartner(p.partner_id, values); } catch (err) { throw parseApiError(err); }
+            setDialog(null);
+            load();
+          }} />
+      )}
+      {dialog === 'delete' && (
+        <DeleteDialog title="Delete partner?" name={p.organization_name} userId={p.user_id}
+          onCancel={() => setDialog(null)}
+          onDelete={async () => {
+            try { await deletePartner(p.partner_id); } catch (err) { throw parseApiError(err); }
+            navigate('/admin/people/partners', { replace: true });
+          }} />
       )}
     </AdminLayout>
   );
