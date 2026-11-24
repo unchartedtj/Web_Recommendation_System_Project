@@ -4,23 +4,21 @@
  * react-router-dom reads the URL in the address bar and renders the matching <Route>.
  * No full page reload happens when you move between pages; React just swaps components.
  */
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminActivity from './pages/admin/AdminActivity.jsx';
 import AdminCatalog from './pages/admin/AdminCatalog.jsx';
 import AdminModel from './pages/admin/AdminModel.jsx';
 import AdminOpportunities from './pages/admin/AdminOpportunities.jsx';
+import AdminOpportunityEditor from './pages/admin/AdminOpportunityEditor.jsx';
 import AdminOverview from './pages/admin/AdminOverview.jsx';
 import { AdminPartnerDetail, AdminPartners } from './pages/admin/AdminPartners.jsx';
 import AdminPlacements from './pages/admin/AdminPlacements.jsx';
 import AdminStudentDetail from './pages/admin/AdminStudentDetail.jsx';
 import AdminStudents from './pages/admin/AdminStudents.jsx';
-import AdminSus from './pages/admin/AdminSus.jsx';
 import AdminUsers from './pages/admin/AdminUsers.jsx';
-import AdminVerifications from './pages/admin/AdminVerifications.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
-import Feedback from './pages/Feedback.jsx';
-import Landing from './pages/Landing.jsx';
+import Contact from './pages/Contact.jsx';
 import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Candidates from './pages/partner/Candidates.jsx';
@@ -34,6 +32,12 @@ import OpportunityDetails from './pages/student/OpportunityDetails.jsx';
 import StudentProfile from './pages/student/StudentProfile.jsx';
 import StudentRecommendations from './pages/student/StudentRecommendations.jsx';
 import { ROLES } from './utils/roles.js';
+
+/** Sends an old detail address (e.g. /admin/students/7) to its new place. */
+function OldAdminRedirect({ to }) {
+  const { id } = useParams();
+  return <Navigate to={`${to}/${id}`} replace />;
+}
 
 export default function App() {
   return (
@@ -64,17 +68,33 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
         <Route path="/admin" element={<AdminOverview />} />
         <Route path="/admin/placements" element={<AdminPlacements />} />
-        <Route path="/admin/students" element={<AdminStudents />} />
-        <Route path="/admin/students/:id" element={<AdminStudentDetail />} />
-        <Route path="/admin/verifications" element={<AdminVerifications />} />
-        <Route path="/admin/partners" element={<AdminPartners />} />
-        <Route path="/admin/partners/:id" element={<AdminPartnerDetail />} />
-        <Route path="/admin/opportunities" element={<AdminOpportunities />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/catalog" element={<AdminCatalog />} />
-        <Route path="/admin/model" element={<AdminModel />} />
-        <Route path="/admin/sus" element={<AdminSus />} />
-        <Route path="/admin/activity" element={<AdminActivity />} />
+        {/* People */}
+        <Route path="/admin/people/students" element={<AdminStudents />} />
+        <Route path="/admin/people/students/:id" element={<AdminStudentDetail />} />
+        <Route path="/admin/people/partners" element={<AdminPartners />} />
+        <Route path="/admin/people/partners/:id" element={<AdminPartnerDetail />} />
+        <Route path="/admin/people/accounts" element={<AdminUsers />} />
+        {/* Internships */}
+        <Route path="/admin/internships/opportunities" element={<AdminOpportunities />} />
+        <Route path="/admin/internships/opportunities/new" element={<AdminOpportunityEditor />} />
+        <Route path="/admin/internships/opportunities/:id/edit" element={<AdminOpportunityEditor />} />
+        <Route path="/admin/internships/catalog" element={<AdminCatalog />} />
+        {/* Reports & settings */}
+        <Route path="/admin/reports/activity" element={<AdminActivity />} />
+        <Route path="/admin/reports/model" element={<AdminModel />} />
+        {/* A section name on its own opens its first tab; older addresses still work. */}
+        <Route path="/admin/people" element={<Navigate to="/admin/people/students" replace />} />
+        <Route path="/admin/internships" element={<Navigate to="/admin/internships/opportunities" replace />} />
+        <Route path="/admin/reports" element={<Navigate to="/admin/reports/activity" replace />} />
+        <Route path="/admin/students" element={<Navigate to="/admin/people/students" replace />} />
+        <Route path="/admin/students/:id" element={<OldAdminRedirect to="/admin/people/students" />} />
+        <Route path="/admin/partners" element={<Navigate to="/admin/people/partners" replace />} />
+        <Route path="/admin/partners/:id" element={<OldAdminRedirect to="/admin/people/partners" />} />
+        <Route path="/admin/users" element={<Navigate to="/admin/people/accounts" replace />} />
+        <Route path="/admin/opportunities" element={<Navigate to="/admin/internships/opportunities" replace />} />
+        <Route path="/admin/catalog" element={<Navigate to="/admin/internships/catalog" replace />} />
+        <Route path="/admin/activity" element={<Navigate to="/admin/reports/activity" replace />} />
+        <Route path="/admin/model" element={<Navigate to="/admin/reports/model" replace />} />
       </Route>
 
       {/* Every logged-in role. */}
@@ -82,12 +102,12 @@ export default function App() {
         <Route path="/account/password" element={<ChangePassword />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLES.STUDENT, ROLES.PARTNER]} />}>
-        <Route path="/feedback" element={<Feedback />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
 
       {/* "/" is the public landing page (logged-in users go to their dashboard);
           any other unknown URL shows the 404 page. */}
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
