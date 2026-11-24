@@ -62,12 +62,14 @@ def _replace_requirements(opportunity: InternshipOpportunity, requirements: list
                                                    importance=s["importance"]))
 
 
-def save_opportunity(data: dict, *, partner=None, opportunity=None) -> InternshipOpportunity:
+def save_opportunity(data: dict, *, partner=None, opportunity=None, actor=None) -> InternshipOpportunity:
     """Create (partner given) or update (opportunity given) the opportunity, its unit
     requirements and its required skills in ONE transaction.
 
     The `*` in the signature means partner/opportunity must be passed by name,
     e.g. save_opportunity(data, partner=p), which makes calls easier to read.
+    actor = who did it, for the activity log (default: the partner who owns it; an admin
+    acting on a partner's behalf passes themselves).
     """
     try:
         creating = opportunity is None
@@ -83,7 +85,8 @@ def save_opportunity(data: dict, *, partner=None, opportunity=None) -> Internshi
         db.session.flush()  # assigns opportunity_id for new rows
         _replace_requirements(opportunity, data["requirements"], data["skills"])
         log_activity("opportunity.created" if creating else "opportunity.updated",
-                     actor=opportunity.partner.user_id if opportunity.partner else None,
+                     actor=actor if actor is not None else (
+                         opportunity.partner.user_id if opportunity.partner else None),
                      target_type="opportunity", target_id=opportunity.opportunity_id,
                      details={"title": opportunity.title})
         db.session.commit()       # save everything together
