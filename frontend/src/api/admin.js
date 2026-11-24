@@ -63,13 +63,12 @@ export async function updateCatalogItem(kind, id, body) {
   return data;
 }
 
-// ---- Model, SUS ----
+// ---- Model ----
 export const fetchModel = () => get('/admin/model');
 export async function retrainModel() {
   const { data } = await client.post('/admin/model/retrain');
   return data;
 }
-export const fetchSusResults = () => get('/admin/sus');
 
 /**
  * Download a CSV export. The request goes through axios (so the login token is sent),
@@ -87,15 +86,20 @@ export async function downloadCsv(url, filename, params) {
   URL.revokeObjectURL(href);
 }
 
-// ---- Marks verification (transcripts) ----
-export const fetchTranscripts = (params) => get('/admin/transcripts', params);
-export const fetchTranscript = (id) => get(`/admin/transcripts/${id}`).then((d) => d.transcript);
-/** The transcript PDF as a temporary in-browser link (so the login token is sent). */
-export async function fetchTranscriptFileUrl(id) {
-  const response = await client.get(`/admin/transcripts/${id}/file`, { responseType: 'blob' });
-  return URL.createObjectURL(response.data);
+
+// ---- Create / edit / delete (CRUD) ----
+async function send(method, url, body) {
+  const { data } = await client.request({ method, url, data: body });
+  return data;
 }
-export async function reviewTranscript(id, body) {
-  const { data } = await client.patch(`/admin/transcripts/${id}`, body);
-  return data.transcript;
-}
+export const createStudent = (body) => send('post', '/admin/students', body);
+export const updateStudent = (id, body) => send('put', `/admin/students/${id}`, body);
+export const deleteStudent = (id) => send('delete', `/admin/students/${id}`);
+export const createPartner = (body) => send('post', '/admin/partners', body);
+export const updatePartner = (id, body) => send('put', `/admin/partners/${id}`, body);
+export const deletePartner = (id) => send('delete', `/admin/partners/${id}`);
+export const fetchAdminOpportunity = (id) => get(`/admin/opportunities/${id}`).then((d) => d.opportunity);
+export const createAdminOpportunity = (body) => send('post', '/admin/opportunities', body).then((d) => d.opportunity);
+export const updateAdminOpportunity = (id, body) => send('put', `/admin/opportunities/${id}`, body).then((d) => d.opportunity);
+export const deleteAdminOpportunity = (id) => send('delete', `/admin/opportunities/${id}`);
+export const deleteUser = (id) => send('delete', `/admin/users/${id}`);
