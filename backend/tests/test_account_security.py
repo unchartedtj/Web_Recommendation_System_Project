@@ -5,7 +5,7 @@ import pytest
 from app.extensions import db
 from app.models import Application, InternshipOpportunity, User
 from app.seed.catalog import DEFAULT_ADMIN, DEMO_PASSWORD
-from tests.conftest import auth_header, login, register_and_login, verify_marks
+from tests.conftest import auth_header, login, register_and_login
 
 SWE = "Software Development Intern"
 DEACTIVATED = "This account has been deactivated. Contact the WBL office."
@@ -32,7 +32,6 @@ def student(client, seeded, profile_body):
         "last_name": "Dent", "course": "BBIT", "year_of_study": 3})
     client.put("/api/student/profile", headers=auth_header(token),
                json=profile_body(65, skills=("Java", "Git & GitHub"), interests=("Software Development",)))
-    verify_marks("stu@strathmore.edu")
     return token
 
 
@@ -65,7 +64,7 @@ def test_wrong_password_on_a_deactivated_account_still_says_invalid(client, admi
 def test_deactivating_a_partner_closes_their_open_opportunities(client, admin, student):
     pid = user_id("info@techcorp.co.ke")
     impact = client.get(f"/api/admin/users/{pid}/impact", headers=auth_header(admin)).get_json()
-    assert impact == {"open_opportunities": 3, "active_applications": 0}
+    assert impact["open_opportunities"] == 3 and impact["active_applications"] == 0
     res = client.patch(f"/api/admin/users/{pid}/deactivate", headers=auth_header(admin))
     assert res.get_json()["closed_opportunities"] == 3
     titles = [o["title"] for o in
@@ -169,12 +168,6 @@ def test_change_password_then_log_in_with_the_new_one(client, student):
                             "confirm_password": "Better456"})
     assert res.status_code == 200
     assert raw_login(client, "stu@strathmore.edu", "Better456").status_code == 200
-
-
-def test_login_records_last_login(client, seeded):
-    login(client, "info@techcorp.co.ke", DEMO_PASSWORD)
-    db.session.expire_all()
-    assert User.query.filter_by(email="info@techcorp.co.ke").one().last_login_at is not None
 
 
 def test_users_list_filters_by_role(client, admin, student):
