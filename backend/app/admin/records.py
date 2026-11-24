@@ -51,7 +51,8 @@ def _student_row(s: Student) -> dict:
     p = _latest_placement(s)
     return {
         "student_id": s.student_id, "user_id": s.user_id,
-        "name": f"{s.first_name} {s.last_name}", "email": s.user.email,
+        "name": f"{s.first_name} {s.last_name}", "first_name": s.first_name,
+        "last_name": s.last_name, "email": s.user.email,
         "admission_no": s.admission_no, "course": s.course, "year_of_study": s.year_of_study,
         "is_active": s.user.is_active,
         "profile_complete": profile_is_complete(s),
