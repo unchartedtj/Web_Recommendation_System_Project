@@ -1,5 +1,5 @@
 /**
- * The account menu shown in every navbar: the user's name, then Give feedback (students and
+ * The account menu shown in every navbar: the user's name, then Contact us (students and
  * partners) and Logout. (The Change password page is only used after an admin resets a
  * password: the user is sent there automatically.)
  * A real <button> with aria-expanded; Esc or clicking outside closes it.
@@ -41,7 +41,9 @@ export default function AccountMenu() {
       {open && (
         <div className="account-menu__list" role="menu">
           {user?.role !== ROLES.ADMIN && (
-            <Link role="menuitem" to="/feedback" onClick={() => setOpen(false)}>Give feedback</Link>
+            <>
+              <Link role="menuitem" to="/contact" onClick={() => setOpen(false)}>Contact us</Link>
+            </>
           )}
           <button type="button" role="menuitem" onClick={handleLogout}>Logout</button>
         </div>
