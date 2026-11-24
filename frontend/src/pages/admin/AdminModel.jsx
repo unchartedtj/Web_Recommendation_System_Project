@@ -1,5 +1,5 @@
 /**
- * Model (/admin/model): retrain the recommendation engine, see when it was last trained,
+ * Model (/admin/reports/model): retrain the recommendation engine, see when it was last trained,
  * the IDF weights it learnt (sortable tables), the 60/25/15 match weights, and the offline
  * evaluation / ablation results.
  */
