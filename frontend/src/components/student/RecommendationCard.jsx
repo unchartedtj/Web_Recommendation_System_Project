@@ -35,7 +35,7 @@ export default function RecommendationCard({ rec, rank, isTop = false, from }) {
           </p>
           <div className="rec-card__tags">
             <StatusBadge eligible={rec.meets_requirements} />
-            {rec.interest_match && <span className="tag tag--interest">♥ Interest match</span>}
+            {rec.interest_match && <span className="tag tag--interest">Matches your interests</span>}
             {rec.my_application && <span className="tag tag--applied">✓ Applied</span>}
           </div>
         </div>
