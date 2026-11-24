@@ -1,4 +1,4 @@
-/* Styles for the account menu, account pages (change password, feedback), the 404/error
+/* Styles for the account menu, account pages (change password), the 404/error
    pages and the whole admin dashboard. Mobile-first: base rules are for phones, @media adds
    the desktop layout. Colours come from the variables in global.css. */
 
@@ -24,22 +24,6 @@
 .narrow-form .field input { width: 100%; }
 .status-page { text-align: center; }
 .status-page__code { font-size: 3rem; font-weight: 800; color: var(--blue); margin: 0; }
-
-/* ---------- SUS questionnaire ---------- */
-.sus-list { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 1rem; }
-.sus-item fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 0.9rem; margin: 0; }
-.sus-item legend { font-weight: 600; padding: 0 0.25rem; }
-.sus-item__number { color: var(--blue); }
-.sus-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; margin-top: 0.5rem; }
-.sus-option { position: relative; display: grid; justify-items: center; gap: 0.15rem; padding: 0.45rem 0.2rem;
-  border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-size: 0.75rem; }
-.sus-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.sus-option:focus-within { outline: 2px solid var(--blue); outline-offset: 1px; }
-.sus-option__value { font-weight: 800; font-size: 1rem; }
-.sus-option--chosen { background: var(--blue); border-color: var(--blue); color: #fff; }
-.sus-form .field textarea { width: 100%; }
-.thank-you h2 { margin-top: 0; }
-@media (max-width: 480px) { .sus-option__label { font-size: 0.65rem; } }
 
 /* ---------- Admin layout ---------- */
 .admin-app { min-height: 100vh; background: var(--bg); }
@@ -118,35 +102,16 @@
 .temp-password__value code { font-size: 1.1rem; background: #fff; padding: 0.25rem 0.5rem; border-radius: 6px;
   border: 1px solid var(--border); word-break: break-all; }
 
-/* ---------- Admin: SUS results ---------- */
-.sus-score { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem;
-  border-left: 6px solid var(--border); }
-.sus-score--pass { border-left-color: var(--success); }
-.sus-score--fail { border-left-color: var(--error); }
-.sus-score__value { font-size: 2.6rem; font-weight: 800; margin: 0; color: var(--blue); }
-.sus-score__verdict { font-weight: 700; font-size: 1.1rem; margin: 0; }
-.sus-score--pass .sus-score__verdict { color: var(--success); }
-.sus-score--fail .sus-score__verdict { color: var(--error); }
+/* ---------- Admin: tabs inside a grouped section (People, Internships, Reports & settings) ---------- */
+.admin-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin: -0.25rem 0 1.25rem;
+  overflow-x: auto; }
+.admin-tabs a { padding: 0.55rem 0.9rem; color: var(--muted); font-weight: 600; text-decoration: none;
+  border-bottom: 3px solid transparent; white-space: nowrap; }
+.admin-tabs a:hover { color: var(--text); }
+.admin-tabs a.active { color: var(--blue); border-bottom-color: var(--blue); }
 
-/* ---------- Marks verification (student profile + admin) ---------- */
-.verify-status { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.82rem;
-  font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
-.verify-status--none { background: #eceff4; color: var(--muted); }
-.verify-status--pending { background: #fff8e1; color: #7a5200; border-color: #ffe082; }
-.verify-status--accepted { background: var(--success-bg); color: var(--success); border-color: #a5d6a7; }
-.verify-status--rejected { background: var(--error-bg); color: var(--error); border-color: #ef9a9a; }
-
-.transcript-section { margin-bottom: 1.25rem; }
-.transcript-section__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.transcript-section__head h2 { margin: 0; font-size: 1.15rem; }
-.transcript-section__upload { margin-top: 0.75rem; }
-.transcript-section__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.3rem; }
-.transcript-section__row input[type="file"] { max-width: 100%; }
-
-.verify-grid { display: grid; gap: 1rem; grid-template-columns: 1fr; }
-.verify-grid__pdf { display: grid; gap: 0.4rem; align-content: start; }
-.verify-pdf { width: 100%; height: 60vh; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
-@media (min-width: 900px) {
-  .modal:has(.verify-grid) { max-width: 1100px; }
-  .verify-grid { grid-template-columns: 1fr 1.4fr; }
-}
+/* Add / edit account dialog and the admin internship editor */
+.dialog-form { display: grid; gap: 0.75rem; max-height: 60vh; overflow-y: auto; padding-right: 0.25rem; }
+.dialog-form .field { margin: 0; }
+.company-choice { margin-bottom: 1rem; }
+.company-choice select { max-width: 28rem; }
