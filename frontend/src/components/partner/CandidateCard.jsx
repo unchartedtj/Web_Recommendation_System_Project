@@ -74,7 +74,7 @@ export default function CandidateCard({ candidate: c, rank, onAction }) {
           <h4>Career interests</h4>
           <p>
             {c.interests.length ? c.interests.join(', ') : '—'}
-            {c.interest_match && <> <span className="tag tag--interest">♥ Matches this sector</span></>}
+            {c.interest_match && <> <span className="tag tag--interest">Matches this sector</span></>}
           </p>
           <h4>Motivation note</h4>
           <p className="candidate-card__note">{c.motivation_note || <span className="muted">No note.</span>}</p>
