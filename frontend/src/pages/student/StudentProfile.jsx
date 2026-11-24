@@ -15,7 +15,6 @@ import { fetchSectors, fetchSkillCategories, fetchUnits } from '../../api/catalo
 import { parseApiError } from '../../api/client.js';
 import { fetchProfile, saveProfile } from '../../api/student.js';
 import StudentLayout from '../../components/student/StudentLayout.jsx';
-import TranscriptSection from '../../components/student/TranscriptSection.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton.jsx';
 import { letterGrade } from '../../utils/grades.js';
@@ -63,7 +62,6 @@ export default function StudentProfile() {
   const [formError, setFormError] = useState('');
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [transcript, setTranscript] = useState(null);   // uploaded PDF + verification status
 
   // Load the lists and the student's current profile when the page opens.
   useEffect(() => {
@@ -75,7 +73,6 @@ export default function StudentProfile() {
         setGrades(Object.fromEntries(Object.entries(profile.grades).map(([k, v]) => [k, String(v)])));
         setSkillIds(profile.skill_ids);
         setSectorIds(profile.sector_ids);
-        setTranscript(profile.transcript);
       })
       .catch((err) => setLoadError(parseApiError(err).message));
   }, []);
@@ -159,8 +156,6 @@ export default function StudentProfile() {
       <h1>My profile</h1>
       <ErrorBanner message={loadError} onRetry={() => window.location.reload()} />
       {!ready && !loadError && <LoadingSkeleton variant="cards" count={1} />}
-
-      {ready && <TranscriptSection transcript={transcript} onUploaded={setTranscript} />}
 
       {ready && (
         <div className="panel">
