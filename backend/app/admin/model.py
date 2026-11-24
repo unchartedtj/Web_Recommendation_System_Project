@@ -1,8 +1,6 @@
-"""The admin Model page and SUS results (test case TC10).
+"""The admin Model page.
 
     GET /api/admin/model            what the model learnt + the offline evaluation results
-    GET /api/admin/sus              usability questionnaire summary
-    GET /api/admin/sus/export.csv   every response as a CSV file
 (Retraining is POST /api/admin/model/retrain, in app/recommendations/routes.py.)
 """
 import csv
@@ -11,10 +9,9 @@ import os
 from flask import current_app, jsonify
 
 from app.admin import admin_bp
-from app.admin.common import ADMIN, csv_response, iso
+from app.admin.common import ADMIN
 from app.auth.decorators import role_required
-from app.models import AcademicUnit, Skill, SusResponse
-from app.sus.services import summary
+from app.models import AcademicUnit, Skill
 from services.recommendation_engine import DEFAULT_WEIGHTS, get_engine
 
 # Columns of evaluation/results.csv worth showing (it also has every mark, which isn't).
@@ -55,19 +52,3 @@ def model_info():
                        "results": _read_csv("results.csv", RESULT_COLUMNS)},
     })
 
-
-@admin_bp.get("/sus")
-@role_required(ADMIN)
-def sus_results():
-    return jsonify(summary())
-
-
-@admin_bp.get("/sus/export.csv")
-@role_required(ADMIN)
-def sus_export():
-    header = ["response_id", "role", *[f"q{i}" for i in range(1, 11)], "sus_score", "comments",
-              "created_at", "updated_at"]
-    rows = [[r.response_id, r.role, *r.answers, r.sus_score, r.comments or "",
-             iso(r.created_at), iso(r.updated_at)]
-            for r in SusResponse.query.order_by(SusResponse.response_id)]
-    return csv_response("sus_responses.csv", header, rows)
