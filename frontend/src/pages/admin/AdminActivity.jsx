@@ -1,5 +1,5 @@
 /**
- * Activity Log (/admin/activity): who did what and when, filterable and paginated.
+ * Activity Log (/admin/reports/activity): who did what and when, filterable and paginated.
  */
 import { fetchActivity } from '../../api/admin.js';
 import { describeAction, detailsText, formatDateTime } from '../../components/admin/ActivityList.jsx';
@@ -11,7 +11,7 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton.jsx';
 
-const AREAS = ['auth', 'opportunity', 'application', 'placement', 'user', 'catalog', 'model', 'sus'];
+const AREAS = ['auth', 'opportunity', 'application', 'placement', 'user', 'catalog', 'model'];
 
 export default function AdminActivity() {
   const { params, setParam, data, error, reload } = useAdminList(fetchActivity);
