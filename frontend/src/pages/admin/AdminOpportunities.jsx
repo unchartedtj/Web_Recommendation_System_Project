@@ -1,12 +1,14 @@
 /**
- * All opportunities (/admin/opportunities) with filters, and Close / Reopen actions.
+ * All opportunities (/admin/internships/opportunities) with filters, and Close / Reopen actions.
  * Reopening is only offered when the deadline is still in the future and slots remain.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { fetchAdminOpportunities, fetchPartners, setOpportunityOpen } from '../../api/admin.js';
+import { deleteAdminOpportunity, fetchAdminOpportunities, fetchPartners, setOpportunityOpen } from '../../api/admin.js';
 import { fetchSectors } from '../../api/catalog.js';
 import { parseApiError } from '../../api/client.js';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import DeleteDialog from '../../components/admin/DeleteDialog.jsx';
 import DataTable from '../../components/admin/DataTable.jsx';
 import Pagination from '../../components/admin/Pagination.jsx';
 import SearchBox from '../../components/admin/SearchBox.jsx';
@@ -26,7 +28,17 @@ export default function AdminOpportunities() {
   const [busy, setBusy] = useState(false);
   const [dialogError, setDialogError] = useState('');
   const [toast, setToast] = useState('');
+  const [deleting, setDeleting] = useState(null);
   const clearToast = useCallback(() => setToast(''), []);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {                                 // "… posted" message from the editor page
+    if (location.state?.message) {
+      setToast(location.state.message);
+      navigate(location.pathname + location.search, { replace: true, state: null });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     fetchPartners({ per_page: 100 }).then((d) => setPartners(d.items)).catch(() => {});
@@ -56,17 +68,23 @@ export default function AdminOpportunities() {
     { key: 'applicants', label: 'Applicants' },
     { key: 'slots', label: 'Slots filled', render: (o) => `${o.slots_filled}/${o.slots}` },
     { key: 'deadline', label: 'Deadline', render: (o) => formatDate(o.application_deadline) },
-    { key: 'actions', label: 'Actions', render: (o) => (o.status === 'open' ? (
+    { key: 'actions', label: 'Actions', render: (o) => (<div className="row-actions">
+      <Link className="btn btn--secondary btn--sm" to={`/admin/internships/opportunities/${o.opportunity_id}/edit`}>Edit</Link>
+      {o.status === 'open' ? (
       <button type="button" className="btn btn--danger btn--sm" onClick={() => { setDialogError(''); setPending({ opp: o, open: false }); }}>Close</button>
     ) : (
       <button type="button" className="btn btn--secondary btn--sm" disabled={!o.can_reopen}
         title={o.can_reopen ? '' : 'The deadline has passed or all slots are filled'}
         onClick={() => { setDialogError(''); setPending({ opp: o, open: true }); }}>Reopen</button>
-    )) },
+    )}
+      <button type="button" className="btn btn--danger btn--sm" onClick={() => setDeleting(o)}>Delete</button>
+    </div>) },
   ];
 
   return (
-    <AdminLayout title="Opportunities">
+    <AdminLayout title="Opportunities" actions={(
+      <Link className="btn btn--primary" to="/admin/internships/opportunities/new">+ Add internship</Link>
+    )}>
       <div className="filter-row" role="group" aria-label="Filter opportunities">
         <SearchBox id="opp-search" value={params.search} onSearch={(v) => setParam('search', v)}
           placeholder="Title or company" />
@@ -118,6 +136,18 @@ export default function AdminOpportunities() {
             {' '}The recommendation model is retrained afterwards.
           </p>
         </ConfirmDialog>
+      )}
+      {deleting && (
+        <DeleteDialog title="Delete internship?" name={`${deleting.title} (${deleting.organization_name})`}
+          extra={deleting.applicants ? `${deleting.applicants} application${deleting.applicants === 1 ? '' : 's'}`
+            + (deleting.slots_filled ? ` and ${deleting.slots_filled} placement record${deleting.slots_filled === 1 ? '' : 's'}` : '') : ''}
+          onCancel={() => setDeleting(null)}
+          onDelete={async () => {
+            try { await deleteAdminOpportunity(deleting.opportunity_id); } catch (err) { throw parseApiError(err); }
+            setToast(`"${deleting.title}" deleted`);
+            setDeleting(null);
+            reload();
+          }} />
       )}
       <Toast message={toast} onDone={clearToast} />
     </AdminLayout>
