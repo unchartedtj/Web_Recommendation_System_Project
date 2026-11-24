@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 
 from flask import jsonify
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
@@ -58,9 +57,6 @@ def login():
     # Only AFTER the password check, so this message can't reveal which accounts exist.
     if not user.is_active:
         raise ApiError(DEACTIVATED, 403)
-
-    user.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
-    log_and_commit("auth.login", actor=user, target_type="user", target_id=user.user_id)
 
     # A JWT is a signed "ticket" the browser sends with later requests to prove who it is.
     # JWT "sub" must be a string. user_id and role also go in as custom claims
