@@ -1,9 +1,12 @@
 /**
- * Students (/admin/students): searchable list (name or admission no) with filters for year,
+ * Students (/admin/people/students): searchable list (name or admission no) with filters for year,
  * profile complete and placement status. Clicking a student opens their read-only record.
  */
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchStudents } from '../../api/admin.js';
+import { createStudent, fetchStudents } from '../../api/admin.js';
+import { parseApiError } from '../../api/client.js';
+import AccountFormDialog from '../../components/admin/AccountFormDialog.jsx';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import DataTable from '../../components/admin/DataTable.jsx';
 import Pagination from '../../components/admin/Pagination.jsx';
@@ -13,10 +16,24 @@ import useAdminList from '../../components/admin/useAdminList.js';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
 import LoadingSkeleton from '../../components/ui/LoadingSkeleton.jsx';
+import Toast from '../../components/ui/Toast.jsx';
 
 export default function AdminStudents() {
   const navigate = useNavigate();
   const { params, setParam, data, error, reload } = useAdminList(fetchStudents);
+  const [adding, setAdding] = useState(false);
+  const [toast, setToast] = useState('');
+  const clearToast = useCallback(() => setToast(''), []);
+  const add = async (values) => {
+    try {
+      const { student } = await createStudent(values);
+      setAdding(false);
+      setToast(`${student.first_name} ${student.last_name} added`);
+      reload();
+    } catch (err) {
+      throw parseApiError(err);
+    }
+  };
 
   const columns = [
     { key: 'name', label: 'Student', render: (r) => (
@@ -33,7 +50,9 @@ export default function AdminStudents() {
   ];
 
   return (
-    <AdminLayout title="Students">
+    <AdminLayout title="Students" actions={(
+      <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>+ Add student</button>
+    )}>
       <div className="filter-row" role="group" aria-label="Filter students">
         <SearchBox id="student-search" value={params.search} onSearch={(v) => setParam('search', v)}
           placeholder="Name or admission no" />
@@ -70,10 +89,12 @@ export default function AdminStudents() {
       {data?.items.length > 0 && (
         <>
           <DataTable caption="Students" columns={columns} rows={data.items} rowKey={(r) => r.student_id}
-            onRowClick={(r) => navigate(`/admin/students/${r.student_id}`)} />
+            onRowClick={(r) => navigate(`/admin/people/students/${r.student_id}`)} />
           <Pagination page={data.page} pages={data.pages} total={data.total} onPage={(p) => setParam('page', p)} />
         </>
       )}
+      {adding && <AccountFormDialog kind="student" onSave={add} onCancel={() => setAdding(false)} />}
+      <Toast message={toast} onDone={clearToast} />
     </AdminLayout>
   );
 }
