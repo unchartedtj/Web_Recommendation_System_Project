@@ -1,29 +1,6 @@
-/* The public landing page, the logo, and the student dashboard's welcome banner.
+/* The login welcome panel, the logo, and the student dashboard's welcome banner.
    Mobile-first (works from 375px wide); @media adds the wider layout. */
 
-/* ---------- Landing page ---------- */
-.landing { min-height: 100vh; display: flex; flex-direction: column; background: var(--surface); }
-.landing__container { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 1rem; }
-
-.landing__header { border-bottom: 3px solid var(--blue); background: var(--surface); }
-.landing__header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding-top: 0.75rem; padding-bottom: 0.75rem; }
-.landing__identity { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
-.landing__logo { margin: 0; height: 48px; }
-.landing__university { margin: 0; font-weight: 700; color: var(--blue); line-height: 1.2; }
-.landing__school { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.3; }
-.landing__login-link { color: var(--blue); font-weight: 600; white-space: nowrap; }
-
-.landing__main { flex: 1; display: grid; gap: 2rem; padding-top: 2rem; padding-bottom: 2.5rem; }
-.landing__intro h1 { font-size: 1.6rem; line-height: 1.25; color: var(--text); margin: 0 0 0.5rem; }
-.landing__lead { font-size: 1.05rem; color: var(--muted); margin: 0 0 1.25rem; }
-.landing__actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; }
-.landing__actions .btn { text-decoration: none; }
-.landing__heading { font-size: 1.15rem; margin: 0 0 0.75rem; color: var(--text); }
-.landing__point { margin: 0 0 0.75rem; line-height: 1.55; }
-
-.landing__requirements { align-self: start; border: 1px solid var(--border); border-radius: 6px;
-  padding: 1.1rem 1.25rem; background: var(--bg); }
 .requirements-list { margin: 0 0 0.75rem; padding-left: 1.2rem; display: grid; gap: 0.45rem; line-height: 1.5; }
 
 .landing__footer { border-top: 1px solid var(--border); padding: 1rem 0; font-size: 0.85rem; color: var(--muted); }
@@ -34,6 +11,40 @@
 @media (min-width: 860px) {
   .landing__main { grid-template-columns: 1.6fr 1fr; gap: 3rem; padding-top: 3rem; }
   .landing__intro h1 { font-size: 2rem; }
+}
+
+/* ---------- Login page: welcome panel (left) + form (right) ---------- */
+/* To use a picture: save it as frontend/public/images/login-background.jpg (or .png / .webp).
+   Until then (or if it is missing) the panel shows plain Strathmore navy. */
+/* Solid Strathmore navy page; the photo box and the white form sit on top of it. */
+.auth-page--split { gap: 2.5rem; padding: 2rem 1.5rem; background: var(--blue-dark); }
+.auth-page--split .card { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); border: 0; }
+
+
+.login-hero {
+  flex: 0 1 26rem;                       /* a box beside the form, not half the screen */
+  align-self: center;
+  min-height: 36rem;                     /* tall enough to show the photo above the text */
+  display: flex; align-items: flex-end;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  background-color: var(--blue);
+  /* Navy shade only behind the text at the bottom, so faces higher up stay clear. */
+  background-image: linear-gradient(to top, rgba(8, 44, 105, 0.95) 0%, rgba(8, 44, 105, 0.85) 40%,
+      rgba(8, 44, 105, 0) 62%),
+    url('/images/login-background.png'), url('/images/login-background.webp'),
+    url('/images/login-background.jpg');   /* whichever of these files exists is shown */
+  background-size: cover; background-position: center top;
+}
+.login-hero h2 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 0.5rem; color: #fff; }
+.login-hero p { font-size: 0.98rem; line-height: 1.55; margin: 0; color: rgba(255, 255, 255, 0.92); }
+.login-hero__points { margin: 1rem 0; padding-left: 1.1rem; display: grid; gap: 0.45rem;
+  font-size: 0.95rem; line-height: 1.45; }
+.login-side { flex: 0 1 420px; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 800px) {
+  .login-hero { display: none; }
 }
 
 /* ---------- Logo (login, register, landing) ---------- */
