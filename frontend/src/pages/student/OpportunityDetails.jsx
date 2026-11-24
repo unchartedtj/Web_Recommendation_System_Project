@@ -120,7 +120,7 @@ export default function OpportunityDetails() {
                 <h2 id="your-match">Your match</h2>
                 <MatchBar percent={m.match_percent} size="lg" />
                 <StatusBadge eligible={m.meets_requirements} />
-                {m.interest_match && <span className="tag tag--interest">♥ Interest match</span>}
+                {m.interest_match && <span className="tag tag--interest">Matches your interests</span>}
                 <ScoreBreakdown breakdown={m.breakdown} />
                 <p className="why-summary">{matchSummary({ ...m, sector: o.sector })}</p>
               </section>
