@@ -32,7 +32,6 @@ class User(db.Model):
     # Set when an admin resets the password: the user must choose a new one after logging in.
     must_change_password = db.Column(db.Boolean, nullable=False, default=False,
                                      server_default=db.false())
-    last_login_at = db.Column(db.DateTime)
 
     # One-to-one links to the role profile (uselist=False). Only one is populated per user.
     # e.g. user.student is the Student row for a student, and None for a partner.
@@ -109,9 +108,6 @@ class Student(db.Model):
     applications = db.relationship("Application", back_populates="student",
                                    cascade="all, delete-orphan")
     placement_records = db.relationship("PlacementRecord", back_populates="student")
-    # The uploaded transcript (PDF) and whether the WBL office accepted the marks.
-    transcript = db.relationship("Transcript", back_populates="student", uselist=False,
-                                 cascade="all, delete-orphan")
 
 
 class IndustryPartner(db.Model):
