@@ -15,6 +15,17 @@ import Logo from '../components/Logo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { dashboardPathFor } from '../utils/roles.js';
 
+// The welcome message on the left of the login page. Edit the text here.
+const WELCOME = {
+  heading: 'Find your next placement',
+  paragraph: 'Discover internships that suit you and take the next step in your career.',
+  points: [
+    'See internships matched to your grades, skills and interests',
+    'Apply in a few clicks and track every application',
+    'Companies post roles and meet the best-fit students',
+  ],
+};
+
 export default function Login() {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();     // function to change page from code
@@ -62,8 +73,22 @@ export default function Login() {
   // Everything below is JSX: HTML-like markup inside JavaScript.
   // className = HTML's "class"; {expression} inserts a JavaScript value.
   return (
-    <div className="auth-page">
-      {/* noValidate: turn off the browser's own pop-up checks; the server's messages are shown instead. */}
+    <div className="auth-page auth-page--split">
+      {/* Left half: welcome panel. Its background picture is set in landing.css (.login-hero);
+          put the image at frontend/public/images/login-background.jpg. Hidden on phones. */}
+      <section className="login-hero" aria-label="About the portal">
+        <div className="login-hero__text">
+          <h2>{WELCOME.heading}</h2>
+          <p>{WELCOME.paragraph}</p>
+          <ul className="login-hero__points">
+            {WELCOME.points.map((point) => <li key={point}>{point}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      {/* Right half: the login form.
+          noValidate: turn off the browser's own pop-up checks; the server's messages are shown instead. */}
+      <div className="login-side">
       <form className="card" onSubmit={handleSubmit} noValidate>
         <div className="auth-brand">
           <Logo size="lg" />
@@ -100,6 +125,7 @@ export default function Login() {
           New here? <Link to="/register">Create an account</Link>
         </p>
       </form>
+      </div>
     </div>
   );
 }
