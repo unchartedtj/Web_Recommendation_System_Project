@@ -1,5 +1,5 @@
 /**
- * Catalog (/admin/catalog): three tabs, Skills, Sectors and Units. Add, rename and
+ * Catalog (/admin/internships/catalog): three tabs, Skills, Sectors and Units. Add, rename and
  * activate/deactivate, with "in use" counts. Items in use are never deleted, only deactivated.
  *
  * Units are special: every student needs a mark for every active unit, so adding (or
