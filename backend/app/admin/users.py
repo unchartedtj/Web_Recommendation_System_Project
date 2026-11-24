@@ -35,7 +35,7 @@ REASON_DEACTIVATED = "Account deactivated"
 def user_row(u: User) -> dict:
     return {"user_id": u.user_id, "email": u.email, "role": u.role.value, "name": u.display_name,
             "is_active": u.is_active, "must_change_password": u.must_change_password,
-            "last_login_at": iso(u.last_login_at), "created_at": iso(u.created_at)}
+            "created_at": iso(u.created_at)}
 
 
 def _get_user(user_id: int) -> User:
@@ -53,7 +53,17 @@ def _impact(u: User) -> dict:
         active_apps = Application.query.filter(
             Application.student_id == u.student.student_id,
             Application.status.in_(ApplicationStatus.ACTIVE)).count()
+    # Totals shown before a permanent delete.
+    applications = placements = opportunities = 0
+    if u.role == UserRole.STUDENT and u.student:
+        applications = len(u.student.applications)
+        placements = len(u.student.placement_records)
+    if u.role == UserRole.INDUSTRY_PARTNER and u.industry_partner:
+        opportunities = len(u.industry_partner.opportunities)
+        applications = sum(len(o.applications) for o in u.industry_partner.opportunities)
+        placements = sum(len(o.placement_records) for o in u.industry_partner.opportunities)
     return {"open_opportunities": len(open_opps), "active_applications": active_apps,
+            "opportunities": opportunities, "applications": applications, "placements": placements,
             "_open": open_opps}
 
 
