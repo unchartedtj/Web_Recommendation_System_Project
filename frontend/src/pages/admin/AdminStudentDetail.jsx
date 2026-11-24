@@ -1,12 +1,14 @@
 /**
- * One student's read-only record (/admin/students/:id): profile, grades, skills, interests,
+ * One student's read-only record (/admin/people/students/:id): profile, grades, skills, interests,
  * current top recommendations, applications and placement.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { fetchStudent } from '../../api/admin.js';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { deleteStudent, fetchStudent, updateStudent } from '../../api/admin.js';
 import { parseApiError } from '../../api/client.js';
+import AccountFormDialog from '../../components/admin/AccountFormDialog.jsx';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import DeleteDialog from '../../components/admin/DeleteDialog.jsx';
 import { ActivePill, PlacementStatusPill } from '../../components/admin/Pill.jsx';
 import ApplicationStatusBadge from '../../components/ui/ApplicationStatusBadge.jsx';
 import ErrorBanner from '../../components/ui/ErrorBanner.jsx';
@@ -21,6 +23,8 @@ export default function AdminStudentDetail() {
   const { id } = useParams();
   const [s, setS] = useState(null);
   const [error, setError] = useState('');
+  const [dialog, setDialog] = useState(null);     // 'edit' | 'delete'
+  const navigate = useNavigate();
   const load = useCallback(() => {
     setError('');
     fetchStudent(id).then(setS).catch((err) => setError(parseApiError(err).message));
@@ -28,8 +32,13 @@ export default function AdminStudentDetail() {
   useEffect(load, [load]);
 
   return (
-    <AdminLayout title={s ? s.name : 'Student'}>
-      <Link className="btn btn--secondary btn--sm back-btn" to="/admin/students">← All students</Link>
+    <AdminLayout title={s ? s.name : 'Student'} actions={s && (
+      <>
+        <button type="button" className="btn btn--secondary" onClick={() => setDialog('edit')}>Edit</button>
+        <button type="button" className="btn btn--danger" onClick={() => setDialog('delete')}>Delete</button>
+      </>
+    )}>
+      <Link className="btn btn--secondary btn--sm back-btn" to="/admin/people/students">← All students</Link>
       <ErrorBanner message={error} onRetry={load} />
       {!s && !error && <LoadingSkeleton variant="cards" count={2} />}
       {s && (
@@ -107,6 +116,21 @@ export default function AdminStudentDetail() {
             )}
           </section>
         </div>
+      )}
+      {dialog === 'edit' && (
+        <AccountFormDialog kind="student" initial={s} onCancel={() => setDialog(null)}
+          onSave={async (values) => {
+            try { await updateStudent(s.student_id, values); } catch (err) { throw parseApiError(err); }
+            setDialog(null);
+            load();
+          }} />
+      )}
+      {dialog === 'delete' && (
+        <DeleteDialog title="Delete student?" name={s.name} userId={s.user_id} onCancel={() => setDialog(null)}
+          onDelete={async () => {
+            try { await deleteStudent(s.student_id); } catch (err) { throw parseApiError(err); }
+            navigate('/admin/people/students', { replace: true });
+          }} />
       )}
     </AdminLayout>
   );
