@@ -14,6 +14,7 @@ import AdminOpportunityEditor from './pages/admin/AdminOpportunityEditor.jsx';
 import AdminOverview from './pages/admin/AdminOverview.jsx';
 import { AdminPartnerDetail, AdminPartners } from './pages/admin/AdminPartners.jsx';
 import AdminPlacements from './pages/admin/AdminPlacements.jsx';
+import AdminReports from './pages/admin/AdminReports.jsx';
 import AdminStudentDetail from './pages/admin/AdminStudentDetail.jsx';
 import AdminStudents from './pages/admin/AdminStudents.jsx';
 import AdminUsers from './pages/admin/AdminUsers.jsx';
@@ -80,12 +81,13 @@ export default function App() {
         <Route path="/admin/internships/opportunities/:id/edit" element={<AdminOpportunityEditor />} />
         <Route path="/admin/internships/catalog" element={<AdminCatalog />} />
         {/* Reports & settings */}
+        <Route path="/admin/reports/summary" element={<AdminReports />} />
         <Route path="/admin/reports/activity" element={<AdminActivity />} />
         <Route path="/admin/reports/model" element={<AdminModel />} />
         {/* A section name on its own opens its first tab; older addresses still work. */}
         <Route path="/admin/people" element={<Navigate to="/admin/people/students" replace />} />
         <Route path="/admin/internships" element={<Navigate to="/admin/internships/opportunities" replace />} />
-        <Route path="/admin/reports" element={<Navigate to="/admin/reports/activity" replace />} />
+        <Route path="/admin/reports" element={<Navigate to="/admin/reports/summary" replace />} />
         <Route path="/admin/students" element={<Navigate to="/admin/people/students" replace />} />
         <Route path="/admin/students/:id" element={<OldAdminRedirect to="/admin/people/students" />} />
         <Route path="/admin/partners" element={<Navigate to="/admin/people/partners" replace />} />
