@@ -202,6 +202,17 @@ def test_invalid_phone_is_rejected(client, partner_payload, phone):
     assert IndustryPartner.query.count() == 0   # nothing saved
 
 
+@pytest.mark.parametrize("phone", ["071234567", "0712 345", "12345", "+254 7123"])
+def test_phone_needs_at_least_10_digits(client, partner_payload, phone):
+    partner_payload["phone"] = phone
+
+    res = client.post(REGISTER, json=partner_payload)
+
+    assert res.status_code == 400
+    assert res.get_json()["fields"]["phone"] == "Phone number must have at least 10 digits"
+    assert IndustryPartner.query.count() == 0
+
+
 def test_failed_profile_insert_rolls_back_user_row(client, student_payload, monkeypatch):
     """If the role row can't be created, the users row must not be left behind."""
     # monkeypatch temporarily replaces a function for this test only. Here we swap
