@@ -25,7 +25,7 @@ from services.recommendation_engine import get_engine
 
 
 def _seed_units() -> dict[str, AcademicUnit]:
-    """Make sure all 12 catalogue units exist and are active. Returns {name: unit}."""
+    """Make sure all the catalogue units exist and are active. Returns {name: unit}."""
     # Every unit already in the database, keyed by name, e.g. {"Database Systems": <unit>}.
     by_name = {u.unit_name: u for u in AcademicUnit.query.all()}
     for name in catalog.UNITS:
