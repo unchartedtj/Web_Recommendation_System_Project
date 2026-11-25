@@ -5,6 +5,7 @@
  * (only when their profile is complete, i.e. when the API sent match_percent).
  */
 import { Link } from 'react-router-dom';
+import { formatPay } from '../../utils/pay.js';
 import { closesIn } from '../../utils/deadline.js';
 import SkillChip from '../ui/SkillChip.jsx';
 import StatusBadge from '../ui/StatusBadge.jsx';
@@ -30,6 +31,7 @@ export default function OpportunityCard({ opp, from }) {
       <ul className="opp-card__facts">
         <li><span aria-hidden="true">📍</span> {opp.location}</li>
         <li><span aria-hidden="true">⏱</span> {opp.duration_months} months</li>
+        <li><span aria-hidden="true">💰</span> {formatPay(opp)}</li>
         <li><span aria-hidden="true">👥</span> {opp.slots} {opp.slots === 1 ? 'slot' : 'slots'}</li>
         <li className={deadline.urgent ? 'deadline--urgent' : ''}>
           <span aria-hidden="true">📅</span> {deadline.label}
