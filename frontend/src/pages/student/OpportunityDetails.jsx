@@ -7,6 +7,7 @@
  * filters), using the `from` URL those pages pass along when linking here.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { formatPay } from '../../utils/pay.js';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { parseApiError } from '../../api/client.js';
 import { fetchOpportunity } from '../../api/student.js';
@@ -86,6 +87,7 @@ export default function OpportunityDetails() {
               <ul className="details__facts">
                 <li><span className="muted">Location</span>{o.location}</li>
                 <li><span className="muted">Duration</span>{o.duration_months} months</li>
+                <li><span className="muted">Pay</span>{formatPay(o)}</li>
                 <li><span className="muted">Slots</span>{o.slots}</li>
                 <li><span className="muted">Posted</span>{formatDate(o.date_posted)}</li>
                 <li className={deadline.urgent ? 'deadline--urgent' : ''}>
