@@ -70,7 +70,7 @@ def save_profile():
     if implausible and data.get("confirm_implausible") is not True:
         raise ApiError(
             "All your marks are identical. Please check them, or confirm they are correct.",
-            409, {"grades": "All 12 marks are identical. Is that correct?"})
+            409, {"grades": f"All {len(cleaned['grades'])} marks are identical. Is that correct?"})
 
     student = current_student()
     try:
