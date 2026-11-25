@@ -106,7 +106,7 @@ def test_units_lists_the_12_active_units_by_name(client, student_token):
     res = client.get("/api/units", headers=auth_header(student_token))
     units = res.get_json()["units"]
     assert res.status_code == 200
-    assert len(units) == 12                                   # the whole seeded catalogue
+    assert len(units) == 13                                   # the whole seeded catalogue
     assert set(units[0]) == {"unit_id", "unit_name"}          # only these two fields are returned
     # The list must be alphabetical: compare it with a sorted copy of itself.
     assert [u["unit_name"] for u in units] == sorted(u["unit_name"] for u in units)
@@ -168,6 +168,67 @@ def test_county_spelling_is_standardised(client, partner_token, opportunity_body
     res = post(client, partner_token, {**opportunity_body(), "location": "  uasin gishu "})
     assert res.status_code == 201
     assert res.get_json()["opportunity"]["location"] == "Uasin Gishu"
+
+
+# =============================================================================
+# Pay: unpaid / paid / stipend (amount in KSh per month)
+# =============================================================================
+
+def test_internships_are_unpaid_by_default(client, partner_token, opportunity_body):
+    opp = post(client, partner_token, opportunity_body()).get_json()["opportunity"]
+    assert (opp["compensation_type"], opp["compensation_amount"]) == ("unpaid", None)
+
+
+@pytest.mark.parametrize("pay_type", ["paid", "stipend"])
+def test_paid_and_stipend_internships_save_the_amount(client, partner_token, opportunity_body,
+                                                       pay_type):
+    res = post(client, partner_token, {**opportunity_body(), "compensation_type": pay_type,
+                                       "compensation_amount": "15000"})
+    assert res.status_code == 201
+    opp = res.get_json()["opportunity"]
+    assert (opp["compensation_type"], opp["compensation_amount"]) == (pay_type, 15000)
+
+
+@pytest.mark.parametrize("amount,message", [
+    (None, "Enter the amount in KSh"),
+    ("", "Enter the amount in KSh"),
+    (0, "Enter a whole number of KSh from 1 to 1,000,000"),
+    (-500, "Enter a whole number of KSh from 1 to 1,000,000"),
+    (1500.5, "Enter a whole number of KSh from 1 to 1,000,000"),
+    ("lots", "Enter a whole number of KSh from 1 to 1,000,000"),
+])
+def test_paid_internship_needs_a_valid_amount(client, partner_token, opportunity_body, amount,
+                                              message):
+    res = post(client, partner_token, {**opportunity_body(), "compensation_type": "paid",
+                                       "compensation_amount": amount})
+    assert res.status_code == 400
+    assert res.get_json()["fields"]["compensation_amount"] == message
+
+
+def test_unknown_pay_type_is_rejected(client, partner_token, opportunity_body):
+    res = post(client, partner_token, {**opportunity_body(), "compensation_type": "commission"})
+    assert res.status_code == 400
+    assert res.get_json()["fields"]["compensation_type"] == "Choose unpaid, paid or stipend"
+
+
+def test_switching_to_unpaid_clears_the_amount(client, partner_token, opportunity_body):
+    opp = post(client, partner_token, {**opportunity_body(), "compensation_type": "stipend",
+                                       "compensation_amount": 8000}).get_json()["opportunity"]
+    res = client.put(f"{PARTNER_OPPS}/{opp['opportunity_id']}", headers=auth_header(partner_token),
+                     json={**opportunity_body(), "compensation_type": "unpaid",
+                           "compensation_amount": 8000})
+    assert res.status_code == 200
+    updated = res.get_json()["opportunity"]
+    assert (updated["compensation_type"], updated["compensation_amount"]) == ("unpaid", None)
+
+
+def test_students_see_the_pay_when_browsing(client, partner_token, student_token, opportunity_body):
+    post(client, partner_token, {**opportunity_body(), "compensation_type": "paid",
+                                 "compensation_amount": 25000})
+    items = client.get("/api/opportunities",
+                       headers=auth_header(student_token)).get_json()["opportunities"]
+    mine = [o for o in items if o["title"] == "Systems Support Intern"]
+    assert mine and (mine[0]["compensation_type"], mine[0]["compensation_amount"]) == ("paid", 25000)
 
 
 # =============================================================================
@@ -387,7 +448,7 @@ def test_closed_opportunity_hidden_from_browse(client, partner_token, student_to
 
 def test_create_and_close_refit_the_model(client, engine, seeded, netsecure_token,
                                           partner_token, opportunity_body):
-    """With the seed, all 12 units are used, so first free up Computer Networks and
+    """With the seed, 12 of the 13 units are used, so first free up Computer Networks and
     Operating Systems by closing the only opportunity that needs them."""
     # The model's "vocabulary" = the set of units required by at least one OPEN opportunity.
     net_units = {seeded[NETWORKS], seeded[OS]}
