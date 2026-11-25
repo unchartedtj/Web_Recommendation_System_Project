@@ -6,7 +6,7 @@ Units are identified by name (the API lists them alphabetically).
 """
 import os
 
-# The 12 catalogue units. Students enter a grade for every one of them.
+# The 13 catalogue units. Students enter a grade for every one of them.
 UNITS = [
     "Object Oriented Programming",
     "Data Structures and Algorithms",
@@ -14,9 +14,10 @@ UNITS = [
     "Database Systems",
     "Web Application Development",
     "Mobile Application Development",
-    "Probability and Statistics I",
+    "Business Intelligence",
     "Artificial Intelligence",
     "Computer Networks",
+    "Wide Area Networks",
     "Operating Systems",
     "Business Systems Analysis",
     "IT Project Management",
@@ -104,10 +105,10 @@ DEMO_STUDENTS = [
     {
         "email": "diana.wanjiru@strathmore.edu", "admission_no": "900002",
         "first_name": "Diana", "last_name": "Wanjiru", "course": "BBIT", "year_of_study": 3,
-        # Strong in statistics and databases. OOP 52 is below the Software Development
+        # Strong in business intelligence and databases. OOP 52 is below the Software Development
         # essential minimum (60), so that internship appears under "Below minimum".
         "profile": {
-            "marks": {"Probability and Statistics I": 86, "Database Systems": 84,
+            "marks": {"Business Intelligence": 86, "Database Systems": 84,
                       "Artificial Intelligence": 72, "Object Oriented Programming": 52},
             "skills": ["Python", "SQL", "Power BI / Tableau"],
             "interests": ["Data Analytics & AI"],
@@ -178,7 +179,7 @@ OPPORTUNITIES = [
         "duration_months": 3,
         "slots": 2,
         "description": "Clean and analyse business data and help prototype machine learning models.",
-        "requirements": [("Probability and Statistics I", E, 60),
+        "requirements": [("Business Intelligence", E, 60),
                          ("Database Systems", E, 55),
                          ("Artificial Intelligence", D, None)],
     },
