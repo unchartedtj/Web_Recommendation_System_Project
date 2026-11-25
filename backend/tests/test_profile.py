@@ -1,6 +1,6 @@
 """Tests for the student profile: GET/PUT /api/student/profile (TC03, TC04).
 
-A profile = a mark for each of the 12 units + 1 to 10 skills + 1 to 3 career interests.
+A profile = a mark for each of the 13 units + 1 to 10 skills + 1 to 3 career interests.
 Saving it also generates recommendations, all in one transaction.
 (See the top of test_opportunities.py for how pytest tests and fixtures work.)
 """
@@ -152,7 +152,7 @@ def test_inactive_skill_is_rejected(client, student_token, profile_body):
 
 def test_identical_marks_need_confirmation(client, student_token, profile_body, seeded):
     body = profile_body()
-    body["grades"] = {str(uid): 70 for uid in seeded.values()}   # all 12 marks the same
+    body["grades"] = {str(uid): 70 for uid in seeded.values()}   # all 13 marks the same
 
     first = put(client, student_token, body)
     assert first.status_code == 409
