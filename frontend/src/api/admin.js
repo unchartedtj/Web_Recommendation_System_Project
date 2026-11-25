@@ -65,6 +65,7 @@ export async function updateCatalogItem(kind, id, body) {
 
 // ---- Model ----
 export const fetchModel = () => get('/admin/model');
+export const fetchReports = () => get('/admin/reports');
 export async function retrainModel() {
   const { data } = await client.post('/admin/model/retrain');
   return data;
