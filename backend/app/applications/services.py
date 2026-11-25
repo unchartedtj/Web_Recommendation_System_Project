@@ -349,6 +349,8 @@ def serialize_student_application(a: Application) -> dict:
             "sector": o.sector.name if o.sector else None,
             "location": o.location,
             "duration_months": o.duration_months,
+            "compensation_type": o.compensation_type,
+            "compensation_amount": o.compensation_amount,
             "status": o.status,
             "application_deadline": iso(o.application_deadline),
         },
