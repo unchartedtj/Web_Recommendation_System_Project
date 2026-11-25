@@ -8,10 +8,11 @@ Example: {"requirements.1.unit_id": "This unit is already listed"} means the 2nd
 from datetime import date
 
 from app.counties import canonical_county
-from app.models import RequirementImportance
+from app.models import CompensationType, RequirementImportance
 
 MIN_REQUIREMENTS, MAX_REQUIREMENTS = 2, 5     # unit requirements per opportunity
 MIN_SKILLS, MAX_SKILLS = 1, 8                 # required skills per opportunity
+MAX_COMPENSATION = 1_000_000                  # KSh per month (a sanity limit)
 # Required text fields and their maximum lengths (matching the database columns).
 # (The sector is no longer text: it's chosen from the preset list as sector_id.)
 TEXT_FIELDS = {"title": 200, "description": 5000, "location": 150}
@@ -93,6 +94,22 @@ def validate_opportunity(data: dict, active_unit_ids: set[int], active_skill_ids
     elif sector_id not in active_sector_ids:
         errors["sector_id"] = "Unknown or inactive sector"
     cleaned["sector_id"] = sector_id
+
+    # Pay: unpaid (default), paid or stipend. Paid and stipend need an amount in KSh per month.
+    pay_type = data.get("compensation_type") or CompensationType.UNPAID
+    if pay_type not in CompensationType.ALL:
+        errors["compensation_type"] = "Choose unpaid, paid or stipend"
+    cleaned["compensation_type"] = pay_type
+    cleaned["compensation_amount"] = None
+    if pay_type in (CompensationType.PAID, CompensationType.STIPEND):
+        raw = data.get("compensation_amount")
+        amount = _to_int(raw)
+        if raw in (None, ""):
+            errors["compensation_amount"] = "Enter the amount in KSh"
+        elif amount is None or not 1 <= amount <= MAX_COMPENSATION:
+            errors["compensation_amount"] = (
+                f"Enter a whole number of KSh from 1 to {MAX_COMPENSATION:,}")
+        cleaned["compensation_amount"] = amount
 
     cleaned["requirements"] = _validate_requirements(data.get("requirements"),
                                                      active_unit_ids, errors)
