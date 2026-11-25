@@ -8,6 +8,14 @@ class OpportunityStatus:
     CLOSED = "closed"
 
 
+class CompensationType:
+    """Is the internship paid? An amount (KSh per month) goes with paid and stipend."""
+    UNPAID = "unpaid"
+    PAID = "paid"
+    STIPEND = "stipend"
+    ALL = (UNPAID, PAID, STIPEND)
+
+
 class RequirementImportance:
     """How much a precursor unit matters to a partner. The engine weights these 2 : 1."""
     ESSENTIAL = "essential"
@@ -22,6 +30,10 @@ class InternshipOpportunity(db.Model):
     __table_args__ = (
         db.CheckConstraint("status IN ('open','closed')", name="ck_opportunities_status"),
         db.CheckConstraint("slots >= 1", name="ck_opportunities_slots"),
+        db.CheckConstraint("compensation_type IN ('unpaid','paid','stipend')",
+                           name="ck_opportunities_compensation_type"),
+        db.CheckConstraint("compensation_amount IS NULL OR compensation_amount > 0",
+                           name="ck_opportunities_compensation_amount"),
     )
 
     opportunity_id = db.Column(db.Integer, primary_key=True)
@@ -38,6 +50,11 @@ class InternshipOpportunity(db.Model):
     duration_months = db.Column(db.Integer)
     slots = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     application_deadline = db.Column(db.Date)
+    # Pay: unpaid, paid (a salary) or stipend (an allowance). The amount is in KSh per month
+    # and is only set for paid and stipend internships.
+    compensation_type = db.Column(db.String(10), nullable=False, default=CompensationType.UNPAID,
+                                  server_default=CompensationType.UNPAID)
+    compensation_amount = db.Column(db.Integer)
     status = db.Column(db.String(20), nullable=False, default=OpportunityStatus.OPEN,
                        server_default=OpportunityStatus.OPEN)
     # db.func.now() → MySQL fills in the current date/time when the row is inserted.
