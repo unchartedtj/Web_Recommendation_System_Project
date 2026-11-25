@@ -34,7 +34,7 @@ OOP = UNIT_ID["Object Oriented Programming"]
 DSA = UNIT_ID["Data Structures and Algorithms"]
 SE = UNIT_ID["Software Engineering"]
 DBS = UNIT_ID["Database Systems"]
-STATS = UNIT_ID["Probability and Statistics I"]
+STATS = UNIT_ID["Business Intelligence"]
 NETW = UNIT_ID["Computer Networks"]
 OS = UNIT_ID["Operating Systems"]
 
@@ -51,7 +51,7 @@ def catalog_opportunities():
 
 
 def marks_for(default=55, overrides=None):
-    """Marks for all 12 catalogue units, e.g. marks_for(55, {OOP: 90})."""
+    """Marks for all 13 catalogue units, e.g. marks_for(55, {OOP: 90})."""
     marks = {uid: default for uid in UNIT_ID.values()}
     marks.update(overrides or {})
     return marks
@@ -180,7 +180,7 @@ def test_below_desirable_minimum_is_listed_but_still_eligible():
 
 def test_tc04_missing_unit_raises(catalog_model):
     marks = marks_for(70)
-    del marks[OOP]  # 11 of 12 units
+    del marks[OOP]  # 12 of 13 units
     with pytest.raises(IncompleteGradesError) as exc:
         recommend(marks, catalog_model)
     assert exc.value.missing == [OOP]
@@ -202,8 +202,11 @@ def test_shared_database_systems_has_lower_idf_than_computer_networks(catalog_mo
     assert idf[DBS] < idf[SE] < idf[NETW]  # Software Engineering sits between (df = 2)
 
 
-def test_all_twelve_units_are_in_the_vocabulary(catalog_model):
-    assert catalog_model["vocabulary"] == sorted(UNIT_ID.values())
+def test_vocabulary_is_every_unit_an_opportunity_requires(catalog_model):
+    # Wide Area Networks isn't required by any seeded opportunity, so it isn't in the vocabulary.
+    required = {UNIT_ID[name] for o in catalog.OPPORTUNITIES for name, *_ in o["requirements"]}
+    assert catalog_model["vocabulary"] == sorted(required)
+    assert UNIT_ID["Wide Area Networks"] not in catalog_model["vocabulary"]
 
 
 # ---- Tie-breaker -----------------------------------------------------------------------------
