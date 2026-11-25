@@ -10,6 +10,7 @@ ROLE_FIELDS = {
     "industry_partner": ("organization_name", "contact_person", "phone"),
 }
 
+MIN_PHONE_DIGITS = 10   # a phone number must contain at least 10 digits (e.g. 0712345678)
 PHONE_RE = re.compile(r"^(?:0|\+?254)[17]\d{8}$")    #phone no characteristics ie must have digits,start with 0 or +254, followed by 7 or 1, and then 8 more digits 
 
 
@@ -101,7 +102,10 @@ def validate_registration(data: dict) -> tuple[dict, dict]:
     else:
         if "phone" not in errors:
             phone = normalize_phone(cleaned["phone"])
-            if phone is None:
+            digits = sum(ch.isdigit() for ch in cleaned["phone"])   # count the digits only
+            if digits < MIN_PHONE_DIGITS:
+                errors["phone"] = f"Phone number must have at least {MIN_PHONE_DIGITS} digits"
+            elif phone is None:
                 errors["phone"] = ("Enter a valid  phone number, "
                                    "e.g. 0712 345 678 or +254 712 345 678")
             else:
