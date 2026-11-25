@@ -1,6 +1,6 @@
 /**
  * "My Profile" (/student/profile): a 4-step form the student fills in once and can edit later.
- *   1. Grades     – a mark for each of the 12 units, with the letter grade shown live
+ *   1. Grades     – a mark for each unit, with the letter grade shown live
  *   2. Skills     – up to 10 technical skills, picked as chips grouped by category
  *   3. Interests  – 1 to 3 career sectors, picked as cards
  *   4. Summary    – review, then "Save & get recommendations"
