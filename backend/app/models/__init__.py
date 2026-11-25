@@ -8,6 +8,7 @@ from app.models.activity import ActivityLog
 from app.models.placement import (
     Application,
     ApplicationStatus,
+    CompensationType,
     InternshipOpportunity,
     OpportunityPrecursor,
     OpportunityStatus,
