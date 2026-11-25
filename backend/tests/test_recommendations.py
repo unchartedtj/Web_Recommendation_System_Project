@@ -82,12 +82,12 @@ def test_generate_endpoint_reruns_from_the_saved_profile(client, student_token, 
 
 def test_unmet_requirements_are_reported(client, student_token, profile_body):
     save_profile(client, student_token,
-                 profile_body(75, {"Probability and Statistics I": 50}))
+                 profile_body(75, {"Business Intelligence": 50}))
     recs = saved(client, student_token)
     data = next(r for r in recs if r["title"] == "Data Analytics & AI Intern")
     assert data["meets_requirements"] is False
     assert data["unmet_requirements"][0] == {
-        "unit_id": data["unmet_requirements"][0]["unit_id"], "unit": "Probability and Statistics I",
+        "unit_id": data["unmet_requirements"][0]["unit_id"], "unit": "Business Intelligence",
         "importance": "essential", "required": 60.0, "your_mark": 50.0}
     assert recs[-1]["title"] == "Data Analytics & AI Intern"  # the only ineligible one → last
 
@@ -108,7 +108,7 @@ def test_uses_latest_profile(client, student_token, profile_body):
 def test_tc04_generate_without_a_profile_lists_every_unit(client, student_token):
     res = client.post(GENERATE, headers=auth_header(student_token))
     assert res.status_code == 400
-    assert len(res.get_json()["fields"]["missing_units"]) == 12
+    assert len(res.get_json()["fields"]["missing_units"]) == 13
     assert Recommendation.query.count() == 0
 
 
@@ -118,12 +118,12 @@ def test_tc04_incomplete_latest_profile_keeps_previous_results(client, student_t
     save_profile(client, student_token, profile_body())
     before = [(r.opportunity_id, r.rank) for r in Recommendation.query.order_by(Recommendation.rank)]
 
-    # The API no longer accepts incomplete profiles, so insert one directly (11 of 12 units).
+    # The API no longer accepts incomplete profiles, so insert one directly (12 of 13 units).
     student_id = Recommendation.query.first().student_id
     profile = GradeProfile(student_id=student_id)
     db.session.add(profile)
     db.session.flush()
-    for name, uid in list(seeded.items())[:11]:
+    for name, uid in list(seeded.items())[:12]:
         db.session.add(Grade(profile_id=profile.profile_id, unit_id=uid, grade_value=70))
     db.session.commit()
 
