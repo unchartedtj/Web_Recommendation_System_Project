@@ -39,6 +39,8 @@ def serialize_recommendation(r: Recommendation) -> dict:
         "location": o.location,
         "duration_months": o.duration_months,
         "slots": o.slots,
+        "compensation_type": o.compensation_type,
+        "compensation_amount": o.compensation_amount,
         "application_deadline": o.application_deadline.isoformat() if o.application_deadline else None,
         "status": o.status,  # may have closed since generation
         "match_score": r.match_score,
