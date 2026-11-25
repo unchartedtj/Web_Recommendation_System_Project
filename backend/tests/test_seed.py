@@ -15,7 +15,7 @@ def counts():
             Skill.query.count(), Sector.query.count(), OpportunitySkill.query.count())
 
 
-EXPECTED = (12, 2, 5, 15, 21, 7, 20)
+EXPECTED = (13, 2, 5, 15, 21, 7, 20)
 
 
 def test_seed_is_idempotent(app):
