@@ -5,7 +5,7 @@
  *   Dashboard · Placements
  *   People              → Students · Partners · All accounts
  *   Internships         → Opportunities · Catalog
- *   Reports & settings  → Activity log · Model
+ *   Reports & settings  → Reports · Activity log · Model
  *
  * Below 760px the sidebar collapses behind a "Menu" button.
  */
@@ -26,6 +26,7 @@ const SECTIONS = [
     { to: '/admin/internships/catalog', label: 'Catalog' },
   ] },
   { to: '/admin/reports', label: 'Reports & settings', icon: '📈', tabs: [
+    { to: '/admin/reports/summary', label: 'Reports' },
     { to: '/admin/reports/activity', label: 'Activity log' },
     { to: '/admin/reports/model', label: 'Model' },
   ] },
