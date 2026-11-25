@@ -115,3 +115,11 @@
 .dialog-form .field { margin: 0; }
 .company-choice { margin-bottom: 1rem; }
 .company-choice select { max-width: 28rem; }
+
+/* ---------- Admin: Reports page ---------- */
+.report { margin-bottom: 1.25rem; }
+.report .chart-box { margin: 0.75rem 0 1rem; }
+.report__table tfoot th { text-align: left; border-top: 2px solid var(--border); }
+.report__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.report__head .section-title { margin: 0; }
+.chart-box--pie { height: 260px; }
