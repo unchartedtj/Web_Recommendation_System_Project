@@ -169,7 +169,7 @@ def test_student_records_filters_and_detail(client, admin, make_student):
     assert [s["admission_no"] for s in page["items"]] == ["70002"]
     sid = client.get("/api/admin/students?search=70001", headers=auth_header(admin)).get_json()["items"][0]["student_id"]
     detail = client.get(f"/api/admin/students/{sid}", headers=auth_header(admin)).get_json()["student"]
-    assert len(detail["grades"]) == 12 and "Java" in detail["skills"]
+    assert len(detail["grades"]) == 13 and "Java" in detail["skills"]
     assert detail["top_recommendations"]
 
 
