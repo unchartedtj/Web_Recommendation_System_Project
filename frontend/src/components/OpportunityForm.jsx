@@ -6,6 +6,7 @@
  * (OpportunityEditor.jsx) decides what "submit" does and passes in any starting values.
  */
 import { useState } from 'react';
+import { PAY_TYPES } from '../utils/pay.js';
 import FormField from './FormField.jsx';
 import RequirementsEditor, { newRow } from './RequirementsEditor.jsx';
 import SkillsPicker, { newSkillRow } from './SkillsPicker.jsx';
@@ -20,6 +21,8 @@ const EMPTY_DETAILS = {
   duration_months: '3',
   slots: '1',
   application_deadline: '',
+  compensation_type: 'unpaid',
+  compensation_amount: '',
 };
 
 /** Tomorrow's date as "YYYY-MM-DD", the earliest deadline the date picker allows. */
@@ -43,6 +46,8 @@ export function toFormState(opportunity) {
       duration_months: String(opportunity.duration_months ?? ''),
       slots: String(opportunity.slots ?? ''),
       application_deadline: opportunity.application_deadline ?? '',
+      compensation_type: opportunity.compensation_type ?? 'unpaid',
+      compensation_amount: opportunity.compensation_amount == null ? '' : String(opportunity.compensation_amount),
     },
     // Each saved requirement / skill becomes one editable row.
     requirements: opportunity.requirements.map((r) =>
@@ -109,6 +114,9 @@ export default function OpportunityForm({ units, sectors, counties = [], skillCa
       sector_id: details.sector_id === '' ? null : Number(details.sector_id),
       duration_months: details.duration_months === '' ? null : Number(details.duration_months),
       slots: details.slots === '' ? null : Number(details.slots),
+      // Unpaid internships have no amount; otherwise send the number of KSh (or null if empty).
+      compensation_amount: details.compensation_type === 'unpaid' || details.compensation_amount === ''
+        ? null : Number(details.compensation_amount),
       requirements: rows.map((r) => ({
         unit_id: r.unit_id === '' ? null : Number(r.unit_id),
         importance: r.importance,
@@ -173,6 +181,19 @@ export default function OpportunityForm({ units, sectors, counties = [], skillCa
         {field('slots', 'Slots available', { type: 'number', min: 1 })}
         {/* min={tomorrow} stops the date picker offering past dates. */}
         {field('application_deadline', 'Application deadline', { type: 'date', min: tomorrowISO() })}
+
+        {/* Pay: unpaid, paid or stipend. The amount box only appears for paid and stipend. */}
+        <div className={`field ${errors.compensation_type ? 'field--invalid' : ''}`}>
+          <label htmlFor="compensation_type">Pay</label>
+          <select id="compensation_type" name="compensation_type" value={details.compensation_type}
+            onChange={handleDetail}>
+            {PAY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          {errors.compensation_type && <p className="field__error">{errors.compensation_type}</p>}
+        </div>
+        {details.compensation_type !== 'unpaid' && field('compensation_amount',
+          `${details.compensation_type === 'paid' ? 'Salary' : 'Stipend'} amount (KSh per month)`,
+          { type: 'number', min: 1, step: 1, inputMode: 'numeric', placeholder: 'e.g. 15000' })}
       </div>
 
       {/* The unit requirement rows (see RequirementsEditor.jsx). */}
