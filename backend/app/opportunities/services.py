@@ -16,7 +16,8 @@ log = logging.getLogger(__name__)
 
 # The opportunity columns a partner can set through the form.
 DETAIL_FIELDS = ("title", "description", "sector_id", "location",
-                 "duration_months", "slots", "application_deadline")
+                 "duration_months", "slots", "application_deadline",
+                 "compensation_type", "compensation_amount")
 
 
 def active_unit_ids() -> set[int]:
@@ -130,6 +131,8 @@ def serialize_opportunity(o: InternshipOpportunity) -> dict:
         "location": o.location,
         "duration_months": o.duration_months,
         "slots": o.slots,
+        "compensation_type": o.compensation_type,
+        "compensation_amount": o.compensation_amount,
         # Dates become text like "2026-11-29" (isoformat), which JSON can carry.
         "application_deadline": o.application_deadline.isoformat() if o.application_deadline else None,
         "status": o.status,
