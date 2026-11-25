@@ -84,7 +84,7 @@ def engine(app):
 
 @pytest.fixture
 def seeded(app):
-    """Seed the catalogue (12 units, skills, sectors, 2 demo partners, 5 opportunities, admin),
+    """Seed the catalogue (13 units, skills, sectors, 2 demo partners, 5 opportunities, admin),
     WITHOUT the demo students. Returns {unit_name: unit_id} so tests can look up ids by name."""
     from app.models import AcademicUnit
     from app.seed.seeder import seed_all
@@ -121,7 +121,7 @@ def profile_body(seeded, skill_ids, sector_ids):
 
     profile_body()                                   → varied marks around 60, 2 skills, 1 interest
     profile_body(55, {"Computer Networks": 90}, skills=["Java"], interests=["Software Development"])
-    The base marks differ slightly per unit on purpose: 12 IDENTICAL marks would trigger
+    The base marks differ slightly per unit on purpose: 13 IDENTICAL marks would trigger
     the "implausible entry" 409 check.
     """
     def make(default=60, overrides=None, skills=("Python", "SQL"),
