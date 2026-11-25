@@ -67,7 +67,7 @@ export default function StudentDashboard() {
               <p className="muted">
                 {complete
                   ? `Last updated ${formatDate(data.profile.profile_updated_at)}. Update it whenever your marks, skills or interests change.`
-                  : 'Add your marks for the 12 units, your technical skills and up to 3 career interests to get recommendations.'}
+                  : 'Add your marks for every unit, your technical skills and up to 3 career interests to get recommendations.'}
               </p>
             </div>
             <Link className="btn btn--primary" to="/student/profile">
